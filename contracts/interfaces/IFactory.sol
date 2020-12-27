@@ -1,4 +1,4 @@
-pragma solidity =0.5.16;
+pragma solidity >=0.5.0;
 
 interface IFactory {
 	event LendingPoolInitialized(address indexed uniswapV2Pair, address indexed token0, address indexed token1,

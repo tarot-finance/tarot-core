@@ -1,4 +1,4 @@
-pragma solidity =0.5.16;
+pragma solidity >=0.5.0;
 
 interface ISimpleUniswapOracle {
 	event PriceUpdate(address indexed pair, uint256 priceCumulative, uint32 blockTimestamp, bool lastIsA);
