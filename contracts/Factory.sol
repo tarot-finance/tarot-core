@@ -70,18 +70,18 @@ contract Factory is IFactory {
 	}
 	
 	function createBorrowable0(address uniswapV2Pair) external returns (address borrowable0) {
-		(address token0,) = _getTokens(uniswapV2Pair);
+		_getTokens(uniswapV2Pair);
 		require(getLendingPool[uniswapV2Pair].borrowable0 == address(0), "Impermax: ALREADY_EXISTS");		
-		borrowable0 = bDeployer.deployBorrowable(uniswapV2Pair, token0);
+		borrowable0 = bDeployer.deployBorrowable(uniswapV2Pair, 0);
 		IBorrowable(borrowable0)._setFactory();
 		_createLendingPool(uniswapV2Pair);
 		getLendingPool[uniswapV2Pair].borrowable0 = borrowable0;
 	}
 	
 	function createBorrowable1(address uniswapV2Pair) external returns (address borrowable1) {
-		(, address token1) = _getTokens(uniswapV2Pair);
+		_getTokens(uniswapV2Pair);
 		require(getLendingPool[uniswapV2Pair].borrowable1 == address(0), "Impermax: ALREADY_EXISTS");		
-		borrowable1 = bDeployer.deployBorrowable(uniswapV2Pair, token1);
+		borrowable1 = bDeployer.deployBorrowable(uniswapV2Pair, 1);
 		IBorrowable(borrowable1)._setFactory();
 		_createLendingPool(uniswapV2Pair);
 		getLendingPool[uniswapV2Pair].borrowable1 = borrowable1;

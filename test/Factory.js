@@ -41,8 +41,8 @@ function getCollateralAddress(deployerAddress, factoryAddress, uniswapV2PairAddr
 	]);
 }
 
-function getBorrowableAddress(deployerAddress, factoryAddress, uniswapV2PairAddress, tokenAddress) {
-	const salt = keccak256(encodePacked(['address', 'address', 'address'], [factoryAddress, uniswapV2PairAddress, tokenAddress]));
+function getBorrowableAddress(deployerAddress, factoryAddress, uniswapV2PairAddress, index) {
+	const salt = keccak256(encodePacked(['address', 'address', 'uint8'], [factoryAddress, uniswapV2PairAddress, index]));
 	//console.log('Borrowable bytecode: ' + keccak256(BorrowableProduction.bytecode));
 	return getCreate2Address([
 		'0xff',
@@ -116,15 +116,15 @@ contract('Factory', function (accounts) {
 		});
 		it('collateral and borrowable addresses can be calculated offchain', () => {
 			expect(collateral1.toLowerCase()).to.eq(getCollateralAddress(ca, fa, uniswapV2Pair1.address));
-			expect(borrowable02.toLowerCase()).to.eq(getBorrowableAddress(ba, fa, uniswapV2Pair2.address, uniswapV2Pair2.obj.token0.address));
-			expect(borrowable13.toLowerCase()).to.eq(getBorrowableAddress(ba, fa, uniswapV2Pair3.address, uniswapV2Pair3.obj.token1.address));
+			expect(borrowable02.toLowerCase()).to.eq(getBorrowableAddress(ba, fa, uniswapV2Pair2.address, 0));
+			expect(borrowable13.toLowerCase()).to.eq(getBorrowableAddress(ba, fa, uniswapV2Pair3.address, 1));
 		});
 		it('collateral and borrowable addresses are dependent on factory', () => {
 			expect(getCollateralAddress(ca, fa, uniswapV2Pair1.address)).to.not.eq(
 				getCollateralAddress(ca, root, uniswapV2Pair1.address)
 			);
-			expect(getBorrowableAddress(ba, fa, uniswapV2Pair2.address, uniswapV2Pair2.obj.token0.address)).to.not.eq(
-				getBorrowableAddress(ba, root, uniswapV2Pair2.address, uniswapV2Pair2.obj.token0.address)
+			expect(getBorrowableAddress(ba, fa, uniswapV2Pair2.address, 0)).to.not.eq(
+				getBorrowableAddress(ba, root, uniswapV2Pair2.address, 0)
 			);
 		});
 		it('revert if already exists', async () => {
