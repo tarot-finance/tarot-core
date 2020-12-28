@@ -18,3 +18,6 @@ Currently we dont have a documentation for this project. Here are some other qui
 - There is a protocol fee that can be set through the `reserveFactor` parameter. Such fee is distributed to the `reserveManager` by minting new tokens each time that the function `exchangeRate()` of a Borrowable is called and the exchange rate has grown in comparison to the previous time;
 - We commonly use 1e18 as denom in order to represent floating point parameters;
 - As a convention "amount" always refers to quantity in underlying tokens while "tokens" refers to quantity in contract tokens.
+
+### Contracts architecture
+![enter image description here](https://i.imgur.com/K2wtH3Y.jpg)
