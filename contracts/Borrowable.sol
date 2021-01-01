@@ -83,7 +83,9 @@ contract Borrowable is IBorrowable, PoolToken, BStorage, BSetter, BInterestRateM
 			} else {
 				borrowSnapshot.interestIndex = borrowIndex;
 			}
-			_totalBorrows = uint(totalBorrows).sub(accountBorrowsPrior - accountBorrows);
+			uint actualDecreaseAmount = accountBorrowsPrior.sub(accountBorrows);
+			_totalBorrows = totalBorrows; // gas savings
+			_totalBorrows = _totalBorrows > actualDecreaseAmount ? _totalBorrows - actualDecreaseAmount : 0;
 			totalBorrows = safe112(_totalBorrows);			
 		}
 	}

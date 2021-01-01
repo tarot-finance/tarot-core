@@ -167,9 +167,6 @@ async function getApprovalDigest(name, tokenAddress, approve, nonce, deadline) {
 
 async function getBorrowApprovalDigest(name, tokenAddress, approve, nonce, deadline) {
 	const DOMAIN_SEPARATOR = getDomainSeparator(name, tokenAddress);
-	const PERMIT_TYPEHASH = keccak256(
-		toUtf8Bytes('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)')
-	);
 	const BORROW_PERMIT_TYPEHASH = keccak256(
 		toUtf8Bytes('BorrowPermit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)')
 	);

@@ -182,10 +182,11 @@ contract('Factory', function (accounts) {
 			await factory.obj.checkLendingPool(uniswapV2Pair2, {initialized: false});
 			await factory.obj.checkLendingPool(uniswapV2Pair3, {initialized: false});
 		});
-		it('simpleUniswapOracle is not initialized', async () => {
+		it('simpleUniswapOracle can be initialized or not', async () => {
 			expect( (await factory.obj.simpleUniswapOracle.getPair(uniswapV2Pair1.address)).initialized ).to.eq(false);
 			expect( (await factory.obj.simpleUniswapOracle.getPair(uniswapV2Pair2.address)).initialized ).to.eq(false);
-			expect( (await factory.obj.simpleUniswapOracle.getPair(uniswapV2Pair3.address)).initialized ).to.eq(false);
+			await factory.obj.simpleUniswapOracle.initialize(uniswapV2Pair3.address);
+			expect( (await factory.obj.simpleUniswapOracle.getPair(uniswapV2Pair3.address)).initialized ).to.eq(true);
 		});
 		it('initialize', async () => {
 			const receipt1 = await factory.initializeLendingPool(uniswapV2Pair1.address);
