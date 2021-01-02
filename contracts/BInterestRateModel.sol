@@ -43,7 +43,7 @@ contract BInterestRateModel is PoolToken, BStorage {
 			if(_kinkBorrowRate > KINK_BORROW_RATE_MAX) _kinkBorrowRate = KINK_BORROW_RATE_MAX;
 			if(_kinkBorrowRate < KINK_BORROW_RATE_MIN) _kinkBorrowRate = KINK_BORROW_RATE_MIN;
 
-			kinkBorrowRate = safe48(_kinkBorrowRate);
+			kinkBorrowRate = uint48(_kinkBorrowRate);
 			emit CalculateKinkBorrowRate(_kinkBorrowRate);
 		}
 		
@@ -64,7 +64,7 @@ contract BInterestRateModel is PoolToken, BStorage {
 			// never overflows
 			_borrowRate = ((KINK_MULTIPLIER - 1) * overUtilization + 1e18) * _kinkBorrowRate / 1e18;
 		}
-		borrowRate = safe48(_borrowRate);
+		borrowRate = uint48(_borrowRate);
 		emit CalculateBorrowRate(_borrowRate);
 	}
 	

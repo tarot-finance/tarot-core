@@ -10,14 +10,15 @@ import "./interfaces/ICollateral.sol";
 import "./interfaces/IImpermaxCallee.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IFactory.sol";
+import "./interfaces/IBorrowTracker.sol";
 
 contract Borrowable is IBorrowable, PoolToken, BStorage, BSetter, BInterestRateModel, BAllowance {
 
 	uint public constant BORROW_FEE = 0.001e18; //0.1%
 
-	event Borrow(address indexed sender, address indexed borrower, uint borrowAmount, uint repayAmount, uint accountBorrows, uint totalBorrows);
-	event Liquidate(address indexed sender, address indexed liquidator, address indexed borrower, uint repayAmount, uint actualRepayAmount, uint seizeTokens, uint accountBorrows, uint totalBorrows);
-	
+	event Borrow(address indexed sender, address indexed borrower, address indexed receiver, uint borrowAmount, uint repayAmount, uint accountBorrowsPrior, uint accountBorrows, uint totalBorrows);
+	event Liquidate(address indexed sender, address indexed borrower, address indexed liquidator, uint declaredRepayAmount, uint repayAmount, uint seizeTokens, uint accountBorrowsPrior, uint accountBorrows, uint totalBorrows);
+		
 	constructor() public {}
 
 	/*** PoolToken ***/
@@ -35,7 +36,7 @@ contract Borrowable is IBorrowable, PoolToken, BStorage, BSetter, BInterestRateM
 			if (liquidity == 0) return _exchangeRate;
 			address reservesManager = IFactory(factory).reservesManager();
 			_mint(reservesManager, liquidity);
-			exchangeRateLast = safe128(_exchangeRateNew);
+			exchangeRateLast = _exchangeRateNew;
 			return _exchangeRateNew;
 		}
 		else return _exchangeRate;
@@ -61,15 +62,22 @@ contract Borrowable is IBorrowable, PoolToken, BStorage, BSetter, BInterestRateM
 		return uint(borrowSnapshot.principal).mul(borrowIndex).div(borrowSnapshot.interestIndex);
 	}
 	
+	function _trackBorrow(address borrower, uint accountBorrows, uint _borrowIndex) internal {
+		address _borrowTracker = borrowTracker;
+		if (_borrowTracker == address(0)) return;
+		IBorrowTracker(_borrowTracker).trackBorrow(borrower, accountBorrows, _borrowIndex);
+	}
+	
 	function _updateBorrow(address borrower, uint borrowAmount, uint repayAmount) private returns (uint accountBorrowsPrior, uint accountBorrows, uint _totalBorrows) {
 		accountBorrowsPrior = borrowBalance(borrower);
 		if (borrowAmount == repayAmount) return (accountBorrowsPrior, accountBorrowsPrior, totalBorrows);
-		else if (borrowAmount > repayAmount) {
+		uint112 _borrowIndex = borrowIndex;
+		if (borrowAmount > repayAmount) {
 			BorrowSnapshot storage borrowSnapshot = borrowBalances[borrower];
 			uint increaseAmount = borrowAmount - repayAmount;
 			accountBorrows = accountBorrowsPrior.add(increaseAmount);
 			borrowSnapshot.principal = safe112(accountBorrows);
-			borrowSnapshot.interestIndex = borrowIndex;
+			borrowSnapshot.interestIndex = _borrowIndex;
 			_totalBorrows = uint(totalBorrows).add(increaseAmount);	
 			totalBorrows = safe112(_totalBorrows);
 		}
@@ -81,13 +89,14 @@ contract Borrowable is IBorrowable, PoolToken, BStorage, BSetter, BInterestRateM
 			if(accountBorrows == 0) {
 				borrowSnapshot.interestIndex = 0;
 			} else {
-				borrowSnapshot.interestIndex = borrowIndex;
+				borrowSnapshot.interestIndex = _borrowIndex;
 			}
 			uint actualDecreaseAmount = accountBorrowsPrior.sub(accountBorrows);
 			_totalBorrows = totalBorrows; // gas savings
 			_totalBorrows = _totalBorrows > actualDecreaseAmount ? _totalBorrows - actualDecreaseAmount : 0;
 			totalBorrows = safe112(_totalBorrows);			
 		}
+		_trackBorrow(borrower, accountBorrows, _borrowIndex);
 	}
 	
 	// this low-level function should be called from another contract
@@ -104,29 +113,33 @@ contract Borrowable is IBorrowable, PoolToken, BStorage, BSetter, BInterestRateM
 		uint borrowFee = borrowAmount.mul(BORROW_FEE).div(1e18);
 		uint adjustedBorrowAmount = borrowAmount.add(borrowFee);
 		uint repayAmount = balance.add(borrowAmount).sub(_totalBalance);
-		(, uint accountBorrows, uint _totalBorrows) = _updateBorrow(borrower, adjustedBorrowAmount, repayAmount);
+		(uint accountBorrowsPrior, uint accountBorrows, uint _totalBorrows) = _updateBorrow(borrower, adjustedBorrowAmount, repayAmount);
 		
 		if(adjustedBorrowAmount > repayAmount) require(
 			ICollateral(collateral).canBorrow(borrower, address(this), accountBorrows),
 			"Impermax: INSUFFICIENT_LIQUIDITY"
 		);
 		
-		emit Borrow(msg.sender, borrower, borrowAmount, repayAmount, accountBorrows, _totalBorrows);
+		emit Borrow(msg.sender, borrower, receiver, borrowAmount, repayAmount, accountBorrowsPrior, accountBorrows, _totalBorrows);
 	}
 
 	// this low-level function should be called from another contract
-	function liquidate(address borrower, address liquidator, uint repayAmount, bytes calldata data) external nonReentrant update accrue returns (uint seizeTokens) {		
+	function liquidate(address borrower, address liquidator, uint declaredRepayAmount, bytes calldata data) external nonReentrant update accrue returns (uint seizeTokens) {
 		// optimistically seize tokens
-		seizeTokens = ICollateral(collateral).seize(liquidator, borrower, repayAmount);	
-		if (data.length > 0) IImpermaxCallee(liquidator).impermaxLiquidate(msg.sender, borrower, repayAmount, data);
+		seizeTokens = ICollateral(collateral).seize(liquidator, borrower, declaredRepayAmount);	
+		if (data.length > 0) IImpermaxCallee(liquidator).impermaxLiquidate(msg.sender, borrower, declaredRepayAmount, data);
 			
 		uint balance = IERC20(underlying).balanceOf(address(this));
-		uint fullRepayAmount = balance.sub(totalBalance);		
-		(uint accountBorrowsPrior, uint accountBorrows, uint _totalBorrows) = _updateBorrow(borrower, 0, fullRepayAmount);
+		uint repayAmount = balance.sub(totalBalance);		
+		(uint accountBorrowsPrior, uint accountBorrows, uint _totalBorrows) = _updateBorrow(borrower, 0, repayAmount);
 		uint actualRepayAmount = accountBorrowsPrior.sub(accountBorrows);
-		require(actualRepayAmount >= repayAmount, "Impermax: INSUFFICIENT_REPAY");		
-				
-		emit Liquidate(msg.sender, liquidator, borrower, repayAmount, actualRepayAmount, seizeTokens, accountBorrows, _totalBorrows);
+		require(actualRepayAmount >= declaredRepayAmount, "Impermax: INSUFFICIENT_REPAY");		
+		
+		emit Liquidate(msg.sender, borrower, liquidator, declaredRepayAmount, repayAmount, seizeTokens, accountBorrowsPrior, accountBorrows, _totalBorrows);
+	}
+	
+	function trackBorrow(address borrower) external {
+		_trackBorrow(borrower, borrowBalance(borrower), borrowIndex);
 	}
 	
 	modifier accrue() {

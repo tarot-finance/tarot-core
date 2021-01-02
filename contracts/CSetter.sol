@@ -12,8 +12,8 @@ contract CSetter is PoolToken, CStorage {
 	uint public constant LIQUIDATION_INCENTIVE_MIN = 1.01e18; //101%
 	uint public constant LIQUIDATION_INCENTIVE_MAX = 1.05e18; //105%
 
-	event NewSafetyMargin(uint oldSafetyMarginSqrt, uint newSafetyMarginSqrt);
-	event NewLiquidationIncentive(uint oldLiquidationIncentive, uint newLiquidationIncentive);
+	event NewSafetyMargin(uint newSafetyMarginSqrt);
+	event NewLiquidationIncentive(uint newLiquidationIncentive);
 	
 	// called once by the factory at the time of deployment
 	function _initialize (
@@ -32,20 +32,24 @@ contract CSetter is PoolToken, CStorage {
 	}
 
 	function _setSafetyMarginSqrt(uint newSafetyMarginSqrt) external nonReentrant {
-		require(msg.sender == IFactory(factory).admin(), "Impermax: UNAUTHORIZED");
-		require(newSafetyMarginSqrt <= SAFETY_MARGIN_SQRT_MAX, "Impermax: INVALID_SETTING");
-		require(newSafetyMarginSqrt >= SAFETY_MARGIN_SQRT_MIN, "Impermax: INVALID_SETTING");
-		uint oldSafetyMarginSqrt = safetyMarginSqrt;
+		_checkSetting(newSafetyMarginSqrt, SAFETY_MARGIN_SQRT_MIN, SAFETY_MARGIN_SQRT_MAX);
 		safetyMarginSqrt = newSafetyMarginSqrt;
-		emit NewSafetyMargin(oldSafetyMarginSqrt, newSafetyMarginSqrt);
+		emit NewSafetyMargin(newSafetyMarginSqrt);
 	}
 
 	function _setLiquidationIncentive(uint newLiquidationIncentive) external nonReentrant {
-		require(msg.sender == IFactory(factory).admin(), "Impermax: UNAUTHORIZED");
-		require(newLiquidationIncentive <= LIQUIDATION_INCENTIVE_MAX, "Impermax: INVALID_SETTING");
-		require(newLiquidationIncentive >= LIQUIDATION_INCENTIVE_MIN, "Impermax: INVALID_SETTING");
-		uint oldLiquidationIncentive = liquidationIncentive;
+		_checkSetting(newLiquidationIncentive, LIQUIDATION_INCENTIVE_MIN, LIQUIDATION_INCENTIVE_MAX);
 		liquidationIncentive = newLiquidationIncentive;
-		emit NewLiquidationIncentive(oldLiquidationIncentive, newLiquidationIncentive);
+		emit NewLiquidationIncentive(newLiquidationIncentive);
+	}
+	
+	function _checkSetting(uint parameter, uint min, uint max) internal view {
+		_checkAdmin();
+		require(parameter >= min, "Impermax: INVALID_SETTING");
+		require(parameter <= max, "Impermax: INVALID_SETTING");
+	}
+	
+	function _checkAdmin() internal view {
+		require(msg.sender == IFactory(factory).admin(), "Impermax: UNAUTHORIZED");
 	}
 }

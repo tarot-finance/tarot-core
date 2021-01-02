@@ -4,6 +4,7 @@ const {
 	ImpermaxCallee,
 	ReentrantCallee,
 	Recipient,
+	MockBorrowTracker,
 	makeFactory,
 	makeUniswapV2Pair,
 	makeErc20Token,
@@ -22,6 +23,7 @@ const {
 const { keccak256, toUtf8Bytes } = require('ethers/utils');
 
 const oneMantissa = (new BN(10)).pow(new BN(18));
+const K_TRACKER = (new BN(2)).pow(new BN(128));
 const INITIAL_EXCHANGE_RATE = oneMantissa;
 
 function slightlyIncrease(bn) {
@@ -84,6 +86,7 @@ contract('Borrowable', function (accounts) {
 		let underlying;
 		let collateral;
 		let recipient;
+		let borrowTracker;
 		const BORROW_FEE = (new BN(10)).pow(new BN(15));
 		const borrowAmount = oneMantissa.mul(new BN(20));
 		const borrowedAmount = borrowAmount.mul(BORROW_FEE).div(oneMantissa).add(borrowAmount);
@@ -126,10 +129,11 @@ contract('Borrowable', function (accounts) {
 			}
 			const receipt = await borrowAction;
 			
+			const borrowBalance = await borrowable.borrowBalance(borrower);
 			expect(await borrowable.borrowAllowance(borrower, root) * 1).to.eq(0);
 			expect(await underlying.balanceOf(borrowable.address) * 1).to.eq(repayAmount * 1);
 			expect(await underlying.balanceOf(receiver) * 1).to.eq(expectedReceiverBalance * 1);
-			expect(await borrowable.borrowBalance(borrower) * 1).to.eq(expectedAccountBorrows * 1);
+			expect(borrowBalance * 1).to.eq(expectedAccountBorrows * 1);
 			expect(await borrowable.totalBorrows() * 1).to.eq(expectedTotalBorrows * 1);
 			expect(await borrowable.totalBalance() * 1).to.eq(repayAmount * 1);
 			expectEvent(receipt, 'Transfer', {});
@@ -138,11 +142,17 @@ contract('Borrowable', function (accounts) {
 			expectEvent(receipt, 'Borrow', {
 				'sender': root,
 				'borrower': borrower,
+				'receiver': receiver,
 				'borrowAmount': borrowAmount,
 				'repayAmount': repayAmount,
+				'accountBorrowsPrior': initialBorrowAmount,
 				'accountBorrows': expectedAccountBorrows,
 				'totalBorrows': expectedTotalBorrows,
 			});
+			
+			const borrowIndex = await borrowable.borrowIndex();
+			expectAlmostEqualMantissa(await borrowTracker.relativeBorrow(borrower), borrowBalance.mul(K_TRACKER).div(borrowIndex));
+			
 			return true;
 		}
 		
@@ -152,8 +162,10 @@ contract('Borrowable', function (accounts) {
 			collateral = await Collateral.new();
 			recipient = await Recipient.new();
 			receiver = (await ImpermaxCallee.new(recipient.address, underlying.address)).address;
+			borrowTracker = await MockBorrowTracker.new();
 			await borrowable.setUnderlyingHarness(underlying.address);
 			await borrowable.setCollateralHarness(collateral.address);
+			await borrowable.setBorrowTracker(borrowTracker.address);
 			await borrowable.sync(); //avoid undesired borrowBalance growing 
 		});
 		
@@ -246,8 +258,8 @@ contract('Borrowable', function (accounts) {
 		const liquidationIncentive = oneMantissa.mul(new BN(104)).div(new BN(100));
 		const price = oneMantissa.mul(new BN(3));
 		
-		const repayAmount = oneMantissa.mul(new BN(20));
-		const seizeTokens = repayAmount.mul(price).div(exchangeRate).mul(liquidationIncentive).div(oneMantissa);
+		const declaredRepayAmount = oneMantissa.mul(new BN(20));
+		const seizeTokens = declaredRepayAmount.mul(price).div(exchangeRate).mul(liquidationIncentive).div(oneMantissa);
 		
 		async function pretendHasBorrowed(borrower, amount) {
 			const borrowIndex = await borrowable.borrowIndex();
@@ -281,103 +293,107 @@ contract('Borrowable', function (accounts) {
 		it(`fail if shortfall is insufficient`, async () => {
 			await collateral.setAccountLiquidityHarness(borrower, '0', '0');
 			await expectRevert(
-				borrowable.liquidate(borrower, liquidator, repayAmount, '0x'), 
+				borrowable.liquidate(borrower, liquidator, declaredRepayAmount, '0x'), 
 				"Impermax: INSUFFICIENT_SHORTFALL"
 			);		
 		});
 		
-		it(`fail if repayAmount is too high`, async () => {
+		it(`fail if declaredRepayAmount is too high`, async () => {
 			await collateral.setAccountLiquidityHarness(borrower, '0', '1');
 			await expectRevert(
-				borrowable.liquidate(borrower, liquidator, repayAmount.add(new BN(1)), '0x'), 
+				borrowable.liquidate(borrower, liquidator, declaredRepayAmount.add(new BN(1)), '0x'), 
 				"Impermax: LIQUIDATING_TOO_MUCH"
 			);		
 		});
 		
-		it(`fail if fullRepayAmount is not enough`, async () => {
+		it(`fail if declaredRepayAmount is not enough`, async () => {
 			await collateral.setAccountLiquidityHarness(borrower, '0', '1');
-			await pretendHasBorrowed(borrower, repayAmount);
-			await underlying.setBalanceHarness(borrowable.address, repayAmount.sub(new BN(1)));
+			await pretendHasBorrowed(borrower, declaredRepayAmount);
+			await underlying.setBalanceHarness(borrowable.address, declaredRepayAmount.sub(new BN(1)));
 			await expectRevert(
-				borrowable.liquidate(borrower, liquidator, repayAmount, '0x'), 
+				borrowable.liquidate(borrower, liquidator, declaredRepayAmount, '0x'), 
 				"Impermax: INSUFFICIENT_REPAY"
 			);		
 		});
 		
 		it(`fail if actualRepayAmount is not enough`, async () => {
 			await collateral.setAccountLiquidityHarness(borrower, '0', '1');
-			await pretendHasBorrowed(borrower, repayAmount.sub(new BN(1)));
-			await underlying.setBalanceHarness(borrowable.address, repayAmount);
+			await pretendHasBorrowed(borrower, declaredRepayAmount.sub(new BN(1)));
+			await underlying.setBalanceHarness(borrowable.address, declaredRepayAmount);
 			await expectRevert(
-				borrowable.liquidate(borrower, liquidator, repayAmount, '0x'), 
+				borrowable.liquidate(borrower, liquidator, declaredRepayAmount, '0x'), 
 				"Impermax: INSUFFICIENT_REPAY"
 			);		
 		});
 		
-		it(`repayAmount is right`, async () => {
+		it(`declaredRepayAmount is right`, async () => {
 			await collateral.setAccountLiquidityHarness(borrower, '0', '1');
-			await pretendHasBorrowed(borrower, repayAmount);
-			await underlying.setBalanceHarness(borrowable.address, repayAmount);
-			const actualSeizeTokens = await borrowable.liquidate.call(borrower, liquidator, repayAmount, '0x');
-			const receipt = await borrowable.liquidate(borrower, liquidator, repayAmount, '0x');
+			await pretendHasBorrowed(borrower, declaredRepayAmount);
+			await underlying.setBalanceHarness(borrowable.address, declaredRepayAmount);
+			const actualSeizeTokens = await borrowable.liquidate.call(borrower, liquidator, declaredRepayAmount, '0x');
+			const receipt = await borrowable.liquidate(borrower, liquidator, declaredRepayAmount, '0x');
 			
 			expect(actualSeizeTokens * 1).to.eq(seizeTokens * 1);
 			expect(await borrowable.totalBorrows() * 1).to.eq(0);
 			expect(await borrowable.borrowBalance(borrower) * 1).to.eq(0);
-			expect(await borrowable.totalBalance() * 1).to.eq(repayAmount * 1);
+			expect(await borrowable.totalBalance() * 1).to.eq(declaredRepayAmount * 1);
 			expectEvent(receipt, 'Liquidate', {
 				sender: root,
-				liquidator: liquidator,
 				borrower: borrower,
-				repayAmount: repayAmount,
-				actualRepayAmount: repayAmount,
+				liquidator: liquidator,
+				declaredRepayAmount: declaredRepayAmount,
+				repayAmount: declaredRepayAmount,
 				seizeTokens: seizeTokens,
+				accountBorrowsPrior: declaredRepayAmount,
 				accountBorrows: '0',
 				totalBorrows: '0',
 			});
 		});
 		
-		it(`actualRepayAmount may be higher than repayAmount`, async () => {
-			const borrowedAmount = repayAmount.mul(new BN(3));
-			const fullRepayAmount = repayAmount.mul(new BN(2));
+		it(`repayAmount may be higher than declaredRepayAmount`, async () => {
+			const accountBorrowsPrior = declaredRepayAmount.mul(new BN(3));
+			const repayAmount = declaredRepayAmount.mul(new BN(2));
 			await collateral.setAccountLiquidityHarness(borrower, '0', '1');
-			await pretendHasBorrowed(borrower, borrowedAmount);
-			await underlying.setBalanceHarness(borrowable.address, fullRepayAmount);
-			const receipt = await borrowable.liquidate(borrower, liquidator, repayAmount, '0x');
+			await pretendHasBorrowed(borrower, accountBorrowsPrior);
+			await underlying.setBalanceHarness(borrowable.address, repayAmount);
+			const receipt = await borrowable.liquidate(borrower, liquidator, declaredRepayAmount, '0x');
+			const accountBorrows = accountBorrowsPrior.sub(repayAmount);
 			
-			expect(await borrowable.totalBorrows() * 1).to.eq(repayAmount * 1);
-			expect(await borrowable.borrowBalance(borrower) * 1).to.eq(repayAmount * 1);
-			expect(await borrowable.totalBalance() * 1).to.eq(fullRepayAmount * 1);
+			expect(await borrowable.totalBorrows() * 1).to.eq(accountBorrows * 1);
+			expect(await borrowable.borrowBalance(borrower) * 1).to.eq(accountBorrows * 1);
+			expect(await borrowable.totalBalance() * 1).to.eq(repayAmount * 1);
 			expectEvent(receipt, 'Liquidate', {
 				sender: root,
-				liquidator: liquidator,
 				borrower: borrower,
+				liquidator: liquidator,
+				declaredRepayAmount: declaredRepayAmount,
 				repayAmount: repayAmount,
-				actualRepayAmount: fullRepayAmount,
 				seizeTokens: seizeTokens,
-				accountBorrows: repayAmount,
-				totalBorrows: repayAmount,
+				accountBorrowsPrior: accountBorrowsPrior,
+				accountBorrows: accountBorrows,
+				totalBorrows: accountBorrows,
 			});
 		});
 		
 		it(`actualRepayAmount cannot be higher than the borrowed amount`, async () => {
-			const borrowedAmount = repayAmount.mul(new BN(2));
-			const fullRepayAmount = repayAmount.mul(new BN(3));
+			const accountBorrowsPrior = declaredRepayAmount.mul(new BN(2));
+			const repayAmount = declaredRepayAmount.mul(new BN(3));
 			await collateral.setAccountLiquidityHarness(borrower, '0', '1');
-			await pretendHasBorrowed(borrower, borrowedAmount);
-			await underlying.setBalanceHarness(borrowable.address, fullRepayAmount);
-			const receipt = await borrowable.liquidate(borrower, liquidator, repayAmount, '0x');
+			await pretendHasBorrowed(borrower, accountBorrowsPrior);
+			await underlying.setBalanceHarness(borrowable.address, repayAmount);
+			const receipt = await borrowable.liquidate(borrower, liquidator, declaredRepayAmount, '0x');
 			
 			expect(await borrowable.totalBorrows() * 1).to.eq(0);
 			expect(await borrowable.borrowBalance(borrower) * 1).to.eq(0);
-			expect(await borrowable.totalBalance() * 1).to.eq(fullRepayAmount * 1);
+			expect(await borrowable.totalBalance() * 1).to.eq(repayAmount * 1);
 			expectEvent(receipt, 'Liquidate', {
 				sender: root,
-				liquidator: liquidator,
 				borrower: borrower,
+				liquidator: liquidator,
+				declaredRepayAmount: declaredRepayAmount,
 				repayAmount: repayAmount,
-				actualRepayAmount: borrowedAmount,
 				seizeTokens: seizeTokens,
+				accountBorrowsPrior: accountBorrowsPrior,
 				accountBorrows: '0',
 				totalBorrows: '0',
 			});
@@ -385,20 +401,21 @@ contract('Borrowable', function (accounts) {
 		
 		it(`flash liquidate`, async () => {
 			await collateral.setAccountLiquidityHarness(borrower, '0', '1');
-			await pretendHasBorrowed(borrower, repayAmount);
-			await underlying.setBalanceHarness(recipient.address, repayAmount);
-			const receipt = await borrowable.liquidate(borrower, liquidator, repayAmount, '0x1');
+			await pretendHasBorrowed(borrower, declaredRepayAmount);
+			await underlying.setBalanceHarness(recipient.address, declaredRepayAmount);
+			const receipt = await borrowable.liquidate(borrower, liquidator, declaredRepayAmount, '0x1');
 			
 			expect(await borrowable.totalBorrows() * 1).to.eq(0);
 			expect(await borrowable.borrowBalance(borrower) * 1).to.eq(0);
-			expect(await borrowable.totalBalance() * 1).to.eq(repayAmount * 1);
+			expect(await borrowable.totalBalance() * 1).to.eq(declaredRepayAmount * 1);		
 			expectEvent(receipt, 'Liquidate', {
 				sender: root,
-				liquidator: liquidator,
 				borrower: borrower,
-				repayAmount: repayAmount,
-				actualRepayAmount: repayAmount,
+				liquidator: liquidator,
+				declaredRepayAmount: declaredRepayAmount,
+				repayAmount: declaredRepayAmount,
 				seizeTokens: seizeTokens,
+				accountBorrowsPrior: declaredRepayAmount,
 				accountBorrows: '0',
 				totalBorrows: '0',
 			});

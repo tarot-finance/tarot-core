@@ -44,8 +44,8 @@ interface IBorrowable {
 	/*** Borrowable ***/
 
 	event BorrowApproval(address indexed owner, address indexed spender, uint value);
-	event Borrow(address indexed sender, address indexed borrower, uint borrowAmount, uint repayAmount, uint accountBorrows, uint totalBorrows);
-	event Liquidate(address indexed sender, address indexed liquidator, address indexed borrower, uint repayAmount, uint actualRepayAmount, uint seizeTokens);
+	event Borrow(address indexed sender, address indexed borrower, address indexed receiver, uint borrowAmount, uint repayAmount, uint accountBorrowsPrior, uint accountBorrows, uint totalBorrows);
+	event Liquidate(address indexed sender, address indexed borrower, address indexed liquidator, uint declaredRepayAmount, uint repayAmount, uint seizeTokens, uint accountBorrowsPrior, uint accountBorrows, uint totalBorrows);
 	
 	function BORROW_FEE() external pure returns (uint);
 	function collateral() external view returns (address);
@@ -55,11 +55,14 @@ interface IBorrowable {
 	function totalBorrows() external view returns (uint);
 	function borrowAllowance(address owner, address spender) external view returns (uint);
 	function borrowBalance(address borrower) external view returns (uint);	
+	function borrowTracker() external view returns (address);
 	
+	function BORROW_PERMIT_TYPEHASH() external pure returns (bytes32);
 	function borrowApprove(address spender, uint256 value) external returns (bool);
 	function borrowPermit(address owner, address spender, uint value, uint deadline, uint8 v, bytes32 r, bytes32 s) external;
 	function borrow(address borrower, address receiver, uint borrowAmount, bytes calldata data) external;
-	function liquidate(address borrower, address liquidator, uint repayAmount, bytes calldata data) external returns (uint seizeTokens);
+	function liquidate(address borrower, address liquidator, uint declaredRepayAmount, bytes calldata data) external returns (uint seizeTokens);
+	function trackBorrow(address borrower) external;
 	
 	/*** Borrowable Interest Rate Model ***/
 
@@ -73,7 +76,7 @@ interface IBorrowable {
 	function borrowRate() external view returns (uint);
 	function kinkBorrowRate() external view returns (uint);
 	function kinkUtilizationRate() external view returns (uint);
-	function adjustSpeed() external pure returns (uint);
+	function adjustSpeed() external view returns (uint);
 	function rateUpdateTimestamp() external view returns (uint32);
 	function accrualTimestamp() external view returns (uint32);
 	
@@ -81,9 +84,10 @@ interface IBorrowable {
 	
 	/*** Borrowable Setter ***/
 
-	event NewReserveFactor(uint oldReserveFactor, uint newReserveFactor);
-	event NewKinkUtilizationRate(uint oldKinkUtilizationRate, uint newKinkUtilizationRate);
-	event NewAdjustSpeed(uint oldAdjustSpeed, uint newAdjustSpeed);
+	event NewReserveFactor(uint newReserveFactor);
+	event NewKinkUtilizationRate(uint newKinkUtilizationRate);
+	event NewAdjustSpeed(uint newAdjustSpeed);
+	event NewBorrowTracker(address newBorrowTracker);
 
 	function RESERVE_FACTOR_MAX() external pure returns (uint);
 	function KINK_UR_MIN() external pure returns (uint);
@@ -100,4 +104,5 @@ interface IBorrowable {
 	function _setReserveFactor(uint newReserveFactor) external;
 	function _setKinkUtilizationRate(uint newKinkUtilizationRate) external;
 	function _setAdjustSpeed(uint newAdjustSpeed) external;
+	function _setBorrowTracker(address newBorrowTracker) external;
 }

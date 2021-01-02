@@ -9,6 +9,9 @@ const {
 	bnMantissa,
 	BN,
 } = require('./Utils/JS');
+const {
+	address,
+} = require('./Utils/Ethereum');
 const { keccak256, toUtf8Bytes } = require('ethers/utils');
 
 
@@ -24,6 +27,7 @@ const KINK_UR_MAX = bnMantissa(0.9);
 const ADJUST_SPEED_MIN = bnMantissa(0.005 / SECONDS_IN_DAY);
 const ADJUST_SPEED_TEST = bnMantissa(0.01 / SECONDS_IN_DAY);
 const ADJUST_SPEED_MAX = bnMantissa(0.5 / SECONDS_IN_DAY);
+const BORROW_TRACKER_TEST = address(10);
 
 function slightlyIncrease(bn) {
 	return bn.mul( bnMantissa(1.0001) ).div( oneMantissa );
@@ -56,6 +60,7 @@ contract('BSetter', function (accounts) {
 		expectAlmostEqualMantissa(await borrowable.kinkUtilizationRate(), kinkUtilizationRate);
 		expectAlmostEqualMantissa(await borrowable.adjustSpeed(), adjustSpeed);
 		expectAlmostEqualMantissa(await borrowable.exchangeRate.call(), await borrowable.exchangeRateLast());
+		expect(await borrowable.borrowTracker()).to.eq(address(0));
 	});
 
 	it('permissions check', async () => {
@@ -63,9 +68,11 @@ contract('BSetter', function (accounts) {
 		await borrowable._setReserveFactor(RESERVE_FACTOR_TEST, {from: admin});
 		await borrowable._setKinkUtilizationRate(KINK_UR_TEST, {from: admin});
 		await borrowable._setAdjustSpeed(ADJUST_SPEED_TEST, {from: admin});
+		await borrowable._setBorrowTracker(BORROW_TRACKER_TEST, {from: admin});
 		await expectRevert(borrowable._setReserveFactor(RESERVE_FACTOR_TEST, {from: user}), 'Impermax: UNAUTHORIZED');
 		await expectRevert(borrowable._setKinkUtilizationRate(KINK_UR_TEST, {from: user}), 'Impermax: UNAUTHORIZED');
 		await expectRevert(borrowable._setAdjustSpeed(ADJUST_SPEED_TEST, {from: user}), 'Impermax: UNAUTHORIZED');
+		await expectRevert(borrowable._setBorrowTracker(BORROW_TRACKER_TEST, {from: user}), 'Impermax: UNAUTHORIZED');
 	});
 
 	it('set reserve factory', async () => {
@@ -84,6 +91,12 @@ contract('BSetter', function (accounts) {
 		const receipt = await borrowable._setAdjustSpeed(ADJUST_SPEED_TEST, {from: admin});
 		expectEvent(receipt, 'NewAdjustSpeed', {});
 		expectAlmostEqualMantissa(await borrowable.adjustSpeed(), ADJUST_SPEED_TEST);
+	});
+
+	it('set borrow tracker', async () => {
+		const receipt = await borrowable._setBorrowTracker(BORROW_TRACKER_TEST, {from: admin});
+		expectEvent(receipt, 'NewBorrowTracker', {});
+		expect((await borrowable.borrowTracker()).toLowerCase()).to.eq(BORROW_TRACKER_TEST.toLowerCase());
 	});
 
 	it('reserve factory boundaries', async () => {

@@ -30,13 +30,6 @@ contract MockUniswapV2Pair is MockERC20 {
 		_blockTimestampLast = blockTimestampLast;
 	}
 	
-	/*function setPrice(uint32 blockTimestamp, uint224 price) external {
-		uint32 timeElapsed = blockTimestamp - blockTimestampLast;
-		price0CumulativeLast += uint(UQ112x112.encode(reserve1).uqdiv(reserve0)) * timeElapsed;
-		reserve1 = toUint112( uint(reserve0).mul(price).div(2**112) );
-		blockTimestampLast = blockTimestamp;
-	}*/
-	
 	function setReserves(uint112 _reserve0, uint112 _reserve1) external {
 		reserve0 = _reserve0;
 		reserve1 = _reserve1;

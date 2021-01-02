@@ -75,7 +75,8 @@ contract BorrowableHarness is Borrowable {
 		exchangeRateLast = _exchangeRateLast;
 	}
 	
-	//function mintReserves() public {
-	//	super._mintReserves();
-	//}
+	function setBorrowTracker(address _borrowTracker) public {
+		borrowTracker = _borrowTracker;
+	}
+
 }

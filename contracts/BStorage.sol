@@ -16,9 +16,10 @@ contract BStorage {
 	uint112 public borrowIndex = 1e18;
 	uint112 public totalBorrows;
 	uint32 public accrualTimestamp = uint32(block.timestamp % 2**32);	
+
+	uint public exchangeRateLast;
 		
 	// use one memory slot
-	uint128 public exchangeRateLast;
 	uint48 public borrowRate;
 	uint48 public kinkBorrowRate = 1.5854896e9; //5% per year
 	uint32 public rateUpdateTimestamp = uint32(block.timestamp % 2**32);
@@ -26,18 +27,10 @@ contract BStorage {
 	uint public reserveFactor = 0.10e18; //10%
 	uint public kinkUtilizationRate = 0.70e18; //70%
 	uint public adjustSpeed = 0.5787037e12; //5% per day
+	address public borrowTracker;
 
-	
-    function safe48(uint n) internal pure returns (uint48) {
-        require(n < 2**48, "Impermax: SAFE48");
-        return uint48(n);
-    }
     function safe112(uint n) internal pure returns (uint112) {
         require(n < 2**112, "Impermax: SAFE112");
         return uint112(n);
-    }
-    function safe128(uint n) internal pure returns (uint128) {
-        require(n < 2**128, "Impermax: SAFE128");
-        return uint128(n);
     }
 }

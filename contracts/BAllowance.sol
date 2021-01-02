@@ -28,17 +28,7 @@ contract BAllowance is PoolToken, BStorage {
 	// keccak256("BorrowPermit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 	bytes32 public constant BORROW_PERMIT_TYPEHASH = 0xf6d86ed606f871fa1a557ac0ba607adce07767acf53f492fb215a1a4db4aea6f;
 	function borrowPermit(address owner, address spender, uint value, uint deadline, uint8 v, bytes32 r, bytes32 s) external {
-		require(deadline >= block.timestamp, "Impermax: EXPIRED");
-		bytes32 digest = keccak256(
-			abi.encodePacked(
-				'\x19\x01',
-				DOMAIN_SEPARATOR,
-				keccak256(abi.encode(BORROW_PERMIT_TYPEHASH, owner, spender, value, nonces[owner]++, deadline))
-			)
-		);
-		address recoveredAddress = ecrecover(digest, v, r, s);
-		require(recoveredAddress != address(0) && recoveredAddress == owner, "Impermax: INVALID_SIGNATURE");
+		_checkSignature(owner, spender, value, deadline, v, r, s, BORROW_PERMIT_TYPEHASH);
 		_borrowApprove(owner, spender, value);
 	}
-	
 }

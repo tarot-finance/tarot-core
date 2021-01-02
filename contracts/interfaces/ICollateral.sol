@@ -57,8 +57,8 @@ interface ICollateral {
 	
 	/*** Collateral Setter ***/
 	
-	event NewSafetyMargin(uint oldSafetyMarginSqrt, uint newSafetyMarginSqrt);
-	event NewLiquidationIncentive(uint oldLiquidationIncentive, uint newLiquidationIncentive);
+	event NewSafetyMargin(uint newSafetyMarginSqrt);
+	event NewLiquidationIncentive(uint newLiquidationIncentive);
 
 	function SAFETY_MARGIN_SQRT_MIN() external pure returns (uint);
 	function SAFETY_MARGIN_SQRT_MAX() external pure returns (uint);
