@@ -18,8 +18,8 @@ contract ImpermaxCallee is IImpermaxCallee {
 		Recipient(recipient).empty(underlying, msg.sender);
 	}
 	
-    function impermaxLiquidate(address sender, address borrower, uint repayAmount, bytes calldata data) external {
-		sender; borrower; repayAmount; data;
+    function impermaxRedeem(address sender, uint redeemAmount, bytes calldata data) external {
+		sender; redeemAmount; data;
 		Recipient(recipient).empty(underlying, msg.sender);
 	}
 	

@@ -54,6 +54,7 @@ interface ICollateral {
 	function accountLiquidity(address account) external returns (uint liquidity, uint shortfall);
 	function canBorrow(address account, address borrowable, uint accountBorrows) external returns (bool);
 	function seize(address liquidator, address borrower, uint repayAmount) external returns (uint seizeTokens);
+	function flashRedeem(address redeemer, uint redeemAmount, bytes calldata data) external;
 	
 	/*** Collateral Setter ***/
 	

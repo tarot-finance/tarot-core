@@ -1,6 +1,9 @@
 const {
 	Borrowable,
 	Collateral,
+	ImpermaxCallee,
+	ReentrantCallee,
+	Recipient,
 	makeFactory,
 	makeUniswapV2Pair,
 } = require('./Utils/Impermax');
@@ -8,12 +11,14 @@ const {
 	expectAlmostEqualMantissa,
 	expectRevert,
 	expectEvent,
+	expectEqual,
 	bnMantissa,
 	uq112,
 	BN,
 } = require('./Utils/JS');
 const {
 	address,
+	encode,
 } = require('./Utils/Ethereum');
 const { keccak256, toUtf8Bytes } = require('ethers/utils');
 
@@ -24,6 +29,9 @@ const SAFETY_MARGIN_MAX = bnMantissa(Math.sqrt(2.5));
 const LIQUIDATION_INCENTIVE_MIN = bnMantissa(1.01);
 const LIQUIDATION_INCENTIVE_TEST = bnMantissa(1.03);
 const LIQUIDATION_INCENTIVE_MAX = bnMantissa(1.05);
+
+const TEST_AMOUNT = oneMantissa.mul(new BN(200));
+const MAX_UINT_256 = (new BN(2)).pow(new BN(256)).sub(new BN(1));
 
 function slightlyIncrease(bn) {
 	return bn.mul( bnMantissa(1.00001) ).div( oneMantissa );
@@ -43,7 +51,7 @@ contract('Collateral', function (accounts) {
 	before(async () => {
 		factory = await makeFactory({admin});
 	});
-	
+
 	describe('getPrices', () => {
 		let collateral;
 		let underlying;
@@ -310,4 +318,144 @@ contract('Collateral', function (accounts) {
 		});
 	});
 
+	describe('flash redeem', () => {
+		let collateral;
+		let underlying;
+		let callee;
+		let recipient;
+		
+		const exchangeRate = 2;
+		const redeemAmount = TEST_AMOUNT;
+		const redeemTokens = redeemAmount.div(new BN(exchangeRate)).add(new BN(1));
+		const collateralBalancePrior = TEST_AMOUNT.mul(new BN(2));
+		const totalSupplyPrior = collateralBalancePrior.div(new BN(exchangeRate));
+		
+		before(async () => {
+			collateral = await Collateral.new();
+			underlying = await makeUniswapV2Pair();
+			await collateral.setUnderlyingHarness(underlying.address);
+			await collateral.unlockTokensTransfer();
+			recipient = await Recipient.new();
+			callee = (await ImpermaxCallee.new(recipient.address, collateral.address)).address;
+		});
+		
+		beforeEach(async () => {
+			await collateral.setBalanceHarness(user, redeemTokens);
+			await collateral.setBalanceHarness(recipient.address, redeemTokens);
+			await collateral.setBalanceHarness(collateral.address, '0');
+			await collateral.setTotalSupply(totalSupplyPrior);
+			await underlying.setBalanceHarness(collateral.address, collateralBalancePrior);
+			await underlying.setBalanceHarness(user, '0');
+			await underlying.setBalanceHarness(recipient.address, '0');
+			await collateral.sync();
+		});
+		
+		it('redeem paying before', async () => {
+			const collateralBalance = collateralBalancePrior.sub(redeemAmount);
+			await collateral.transfer(collateral.address, redeemTokens, {from: user});
+			const receipt = await collateral.flashRedeem(user, redeemAmount, '0x');
+			expectEvent(receipt, 'Transfer', {
+				from: collateral.address,
+				to: address(0),
+				value: redeemTokens,
+			});
+			expectEvent(receipt, 'Transfer', {
+				from: collateral.address,
+				to: user,
+				value: redeemAmount,
+			});
+			expectEvent(receipt, 'Sync', {
+				totalBalance: collateralBalance,
+			});
+			expectEvent(receipt, 'Redeem', {
+				sender: root,
+				redeemer: user,
+				redeemAmount: redeemAmount,
+				redeemTokens: redeemTokens,
+			});
+			
+			expectEqual(await collateral.totalSupply(), totalSupplyPrior.sub(redeemTokens));
+			expectEqual(await collateral.balanceOf(user), 0);
+			expectEqual(await underlying.balanceOf(collateral.address), collateralBalance);
+			expectEqual(await collateral.totalBalance(), collateralBalance);
+			expectEqual(await underlying.balanceOf(user), redeemAmount);
+			expectEqual(await collateral.exchangeRate.call(), oneMantissa.mul(new BN(exchangeRate)));
+		});
+		
+		it('redeem fails if redeemTokens is not enough', async () => {
+			await collateral.transfer(collateral.address, redeemTokens.sub(new BN(1)), {from: user});
+			await expectRevert(collateral.flashRedeem(user, redeemAmount, '0x'), 'Impermax: INSUFFICIENT_REDEEM_TOKENS');
+		});
+		
+		it('redeemTokens can be more than needed', async () => {
+			const collateralBalance = collateralBalancePrior.sub(redeemAmount.div(new BN(2)));
+			await collateral.transfer(collateral.address, redeemTokens, {from: user});
+			const receipt = await collateral.flashRedeem(user, redeemAmount.div(new BN(2)), '0x');
+			expectEvent(receipt, 'Transfer', {
+				from: collateral.address,
+				to: address(0),
+				value: redeemTokens,
+			});
+			expectEvent(receipt, 'Transfer', {
+				from: collateral.address,
+				to: user,
+				value: redeemAmount.div(new BN(2)),
+			});
+			expectEvent(receipt, 'Sync', {
+				totalBalance: collateralBalance,
+			});
+			expectEvent(receipt, 'Redeem', {
+				sender: root,
+				redeemer: user,
+				redeemAmount: redeemAmount.div(new BN(2)),
+				redeemTokens: redeemTokens,
+			});
+			
+			expectEqual(await collateral.totalSupply(), totalSupplyPrior.sub(redeemTokens));
+			expectEqual(await collateral.balanceOf(user), 0);
+			expectEqual(await underlying.balanceOf(collateral.address), collateralBalance);
+			expectEqual(await collateral.totalBalance(), collateralBalance);
+			expectEqual(await underlying.balanceOf(user), redeemAmount.div(new BN(2)));
+		});
+		
+		it('redeem fails if redeemAmount exceeds cash', async () => {
+			await expectRevert(
+				collateral.flashRedeem(user, collateralBalancePrior.add(new BN(1)), '0x'), 
+				'Impermax: INSUFFICIENT_CASH'
+			);
+		});
+		
+		it('flash redeem', async () => {
+			const collateralBalance = collateralBalancePrior.sub(redeemAmount);
+			const receipt = await collateral.flashRedeem(callee, redeemAmount, '0x1');
+			
+			expectEqual(await collateral.totalSupply(), totalSupplyPrior.sub(redeemTokens));
+			expectEqual(await collateral.balanceOf(callee), 0);
+			expectEqual(await underlying.balanceOf(collateral.address), collateralBalance);
+			expectEqual(await collateral.totalBalance(), collateralBalance);
+			expectEqual(await underlying.balanceOf(callee), redeemAmount);
+			expectEqual(await collateral.exchangeRate.call(), oneMantissa.mul(new BN(exchangeRate)));
+		});
+	});
+	
+	describe('reentrancy', () => {
+		let collateral;
+		let underlying;
+		let receiver;
+		before(async () => {
+			collateral = await Collateral.new();
+			underlying = await makeUniswapV2Pair();
+			await collateral.setUnderlyingHarness(underlying.address);
+			receiver = (await ReentrantCallee.new()).address;
+		});
+		
+		it(`borrow reentrancy`, async () => {
+			await expectRevert(collateral.flashRedeem(receiver, '0', encode(['uint'], [1])), 'Impermax: REENTERED');
+			await expectRevert(collateral.flashRedeem(receiver, '0', encode(['uint'], [2])), 'Impermax: REENTERED');
+			await expectRevert(collateral.flashRedeem(receiver, '0', encode(['uint'], [3])), 'Impermax: REENTERED');
+			await expectRevert(collateral.flashRedeem(receiver, '0', encode(['uint'], [4])), 'Impermax: REENTERED');
+			await expectRevert(collateral.flashRedeem(receiver, '0', encode(['uint'], [5])), 'Impermax: REENTERED');
+			await expectRevert(collateral.flashRedeem(receiver, '0', encode(['uint'], [0])), 'TEST');
+		});
+	});
 });

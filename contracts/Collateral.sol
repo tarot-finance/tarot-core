@@ -7,6 +7,7 @@ import "./interfaces/IBorrowable.sol";
 import "./interfaces/ICollateral.sol";
 import "./interfaces/IFactory.sol";
 import "./interfaces/ISimpleUniswapOracle.sol";
+import "./interfaces/IImpermaxCallee.sol";
 import "./interfaces/IUniswapV2Pair.sol";
 import "./libraries/UQ112x112.sol";
 import "./libraries/Math.sol";
@@ -119,5 +120,21 @@ contract Collateral is ICollateral, PoolToken, CStorage, CSetter {
 		balanceOf[borrower] = balanceOf[borrower].sub(seizeTokens, "Impermax: LIQUIDATING_TOO_MUCH");
 		balanceOf[liquidator] = balanceOf[liquidator].add(seizeTokens);
 		emit Transfer(borrower, liquidator, seizeTokens);
+	}
+
+	// this low-level function should be called from another contract
+	function flashRedeem(address redeemer, uint redeemAmount, bytes calldata data) external nonReentrant update {
+		require(redeemAmount <= totalBalance, "Impermax: INSUFFICIENT_CASH");
+		
+		// optimistically transfer funds
+		_safeTransfer(redeemer, redeemAmount);
+		if (data.length > 0) IImpermaxCallee(redeemer).impermaxRedeem(msg.sender, redeemAmount, data);
+		
+		uint redeemTokens = balanceOf[address(this)];
+		uint declaredRedeemTokens = redeemAmount.mul(1e18).div( exchangeRate() ).add(1); // rounded up
+		require(redeemTokens >= declaredRedeemTokens, "Impermax: INSUFFICIENT_REDEEM_TOKENS");
+		
+		_burn(address(this), redeemTokens);
+		emit Redeem(msg.sender, redeemer, redeemAmount, redeemTokens);
 	}
 }

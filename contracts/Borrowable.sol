@@ -11,13 +11,14 @@ import "./interfaces/IImpermaxCallee.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IFactory.sol";
 import "./interfaces/IBorrowTracker.sol";
+import "./libraries/Math.sol";
 
 contract Borrowable is IBorrowable, PoolToken, BStorage, BSetter, BInterestRateModel, BAllowance {
 
 	uint public constant BORROW_FEE = 0.001e18; //0.1%
 
 	event Borrow(address indexed sender, address indexed borrower, address indexed receiver, uint borrowAmount, uint repayAmount, uint accountBorrowsPrior, uint accountBorrows, uint totalBorrows);
-	event Liquidate(address indexed sender, address indexed borrower, address indexed liquidator, uint declaredRepayAmount, uint repayAmount, uint seizeTokens, uint accountBorrowsPrior, uint accountBorrows, uint totalBorrows);
+	event Liquidate(address indexed sender, address indexed borrower, address indexed liquidator, uint seizeTokens, uint repayAmount, uint accountBorrowsPrior, uint accountBorrows, uint totalBorrows);
 		
 	constructor() public {}
 
@@ -124,18 +125,15 @@ contract Borrowable is IBorrowable, PoolToken, BStorage, BSetter, BInterestRateM
 	}
 
 	// this low-level function should be called from another contract
-	function liquidate(address borrower, address liquidator, uint declaredRepayAmount, bytes calldata data) external nonReentrant update accrue returns (uint seizeTokens) {
-		// optimistically seize tokens
-		seizeTokens = ICollateral(collateral).seize(liquidator, borrower, declaredRepayAmount);	
-		if (data.length > 0) IImpermaxCallee(liquidator).impermaxLiquidate(msg.sender, borrower, declaredRepayAmount, data);
-			
+	function liquidate(address borrower, address liquidator) external nonReentrant update accrue returns (uint seizeTokens) {
 		uint balance = IERC20(underlying).balanceOf(address(this));
 		uint repayAmount = balance.sub(totalBalance);		
-		(uint accountBorrowsPrior, uint accountBorrows, uint _totalBorrows) = _updateBorrow(borrower, 0, repayAmount);
-		uint actualRepayAmount = accountBorrowsPrior.sub(accountBorrows);
-		require(actualRepayAmount >= declaredRepayAmount, "Impermax: INSUFFICIENT_REPAY");		
 		
-		emit Liquidate(msg.sender, borrower, liquidator, declaredRepayAmount, repayAmount, seizeTokens, accountBorrowsPrior, accountBorrows, _totalBorrows);
+		uint actualRepayAmount = Math.min(borrowBalance(borrower), repayAmount);
+		seizeTokens = ICollateral(collateral).seize(liquidator, borrower, actualRepayAmount);	
+		(uint accountBorrowsPrior, uint accountBorrows, uint _totalBorrows) = _updateBorrow(borrower, 0, repayAmount);
+		
+		emit Liquidate(msg.sender, borrower, liquidator, seizeTokens, repayAmount, accountBorrowsPrior, accountBorrows, _totalBorrows);
 	}
 	
 	function trackBorrow(address borrower) external {

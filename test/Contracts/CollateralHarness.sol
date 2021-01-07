@@ -27,6 +27,10 @@ contract CollateralHarness is Collateral {
 		balanceOf[account] = balance;
 	}
 	
+	function setTotalSupply(uint _totalSupply) external {
+		totalSupply = _totalSupply;
+	}
+	
 	bool public useMockPrices;
 	uint public _price0;
 	uint public _price1;
@@ -87,5 +91,18 @@ contract CollateralHarness is Collateral {
 	function setMaxBorrowable(address borrower, address borrowable, uint maxAmount) external {
 		useMockCanBorrow = true;
 		maxBorrowable[borrower][borrowable] = maxAmount;
+	}
+	
+	bool public useMockTokensUnlocked;
+	
+	function tokensUnlocked(address from, uint value) public returns (bool) {
+		if (useMockTokensUnlocked){
+			return true;
+		}
+		return super.tokensUnlocked(from, value);
+	}
+	
+	function unlockTokensTransfer() external {
+		useMockTokensUnlocked = true;
 	}
 }
