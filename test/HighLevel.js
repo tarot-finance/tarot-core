@@ -40,7 +40,7 @@ const Borrowable = artifacts.require('Borrowable');
 contract('Highlevel', function (accounts) {
 	const root = accounts[0];
 	const user = accounts[1];
-	const admin = accounts[2];		
+	const reservesAdmin = accounts[2];		
 	const borrower = accounts[3];		
 	const lender = accounts[4];		
 	const liquidator = accounts[5];		
@@ -82,8 +82,8 @@ contract('Highlevel', function (accounts) {
 	});
 
 	it('deploy factory', async () => {
-		factory = await makeFactory({admin});
-		await factory._setReservesManager(reservesManager, {from: admin});
+		factory = await makeFactory({reservesAdmin});
+		await factory._setReservesManager(reservesManager, {from: reservesAdmin});
 	});
 
 	it('deploy lending pool', async () => {

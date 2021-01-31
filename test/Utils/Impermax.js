@@ -81,12 +81,13 @@ async function makeCDeployer(opts = {}) {
 
 async function makeFactory(opts = {}) {
 	const admin = opts.admin || address(0);
+	const reservesAdmin = opts.reservesAdmin || address(0);
 	const bDeployer = opts.bDeployer || await makeBDeployer(opts);
 	const cDeployer = opts.cDeployer || await makeCDeployer(opts);
 	const uniswapV2Factory = opts.uniswapV2Factory || await makeUniswapV2Factory(opts);
 	const simpleUniswapOracle = opts.simpleUniswapOracle || await makeSimpleUniswapOracle(opts);
-	const factory = await Factory.new(admin, bDeployer.address, cDeployer.address, uniswapV2Factory.address, simpleUniswapOracle.address);
-	return Object.assign(factory, {obj: {admin, bDeployer, cDeployer, uniswapV2Factory, simpleUniswapOracle,
+	const factory = await Factory.new(admin, reservesAdmin, bDeployer.address, cDeployer.address, uniswapV2Factory.address, simpleUniswapOracle.address);
+	return Object.assign(factory, {obj: {admin, reservesAdmin, bDeployer, cDeployer, uniswapV2Factory, simpleUniswapOracle,
 		checkLendingPool: async (pair, {initialized, lendingPoolId, collateral, borrowable0, borrowable1}) => {
 			const lendingPool = await factory.getLendingPool(pair.address);
 			if(initialized) expect(lendingPool.initialized).to.eq(initialized);

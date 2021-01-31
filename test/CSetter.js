@@ -11,10 +11,10 @@ const {
 const { keccak256, toUtf8Bytes } = require('ethers/utils');
 
 const oneMantissa = (new BN(10)).pow(new BN(18));
-const SAFETY_MARGIN_MIN = bnMantissa(Math.sqrt(1.5));
+const SAFETY_MARGIN_MIN = bnMantissa(Math.sqrt(1.00));
 const SAFETY_MARGIN_TEST = bnMantissa(Math.sqrt(1.75));
-const SAFETY_MARGIN_MAX = bnMantissa(Math.sqrt(2.5));
-const LIQUIDATION_INCENTIVE_MIN = bnMantissa(1.01);
+const SAFETY_MARGIN_MAX = bnMantissa(Math.sqrt(2.50));
+const LIQUIDATION_INCENTIVE_MIN = bnMantissa(1.00);
 const LIQUIDATION_INCENTIVE_TEST = bnMantissa(1.03);
 const LIQUIDATION_INCENTIVE_MAX = bnMantissa(1.05);
 

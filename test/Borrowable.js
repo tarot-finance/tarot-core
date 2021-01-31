@@ -40,7 +40,8 @@ contract('Borrowable', function (accounts) {
 	let borrower = accounts[3];		
 	let receiver = accounts[4];		
 	let liquidator = accounts[5];		
-	let reserveManager = accounts[6];		
+	let reservesManager = accounts[6];		
+	let reservesAdmin = accounts[6];		
 	
 	describe('exchangeRate, borrowBalance', () => {
 		let borrowable;
@@ -383,13 +384,13 @@ contract('Borrowable', function (accounts) {
 		const totalSupply = oneMantissa.mul(new BN(100));
 		const reserveFactor = oneMantissa.div(new BN(8));
 		before(async () => {
-			factory = await makeFactory({admin});
+			factory = await makeFactory({admin, reservesAdmin});
 			borrowable = await Borrowable.new();
 			underlying = await makeErc20Token();
 			await borrowable.setUnderlyingHarness(underlying.address);
 			await borrowable.setFactoryHarness(factory.address);
 			await borrowable._setReserveFactor(reserveFactor, {from: admin});
-			await factory._setReservesManager(reserveManager, {from: admin});
+			await factory._setReservesManager(reservesManager, {from: reservesAdmin});
 			await borrowable.setTotalBalance(totalBalance);
 			await borrowable.setTotalBorrows(totalBorrows);
 			await underlying.mint(borrowable.address, totalBalance);
@@ -397,15 +398,15 @@ contract('Borrowable', function (accounts) {
 		
 		beforeEach(async () => {
 			await borrowable.setTotalSupply(totalSupply);
-			const reserveTokens = await borrowable.balanceOf(reserveManager);
-			await borrowable.transfer(address(0), reserveTokens, {from: reserveManager});
+			const reserveTokens = await borrowable.balanceOf(reservesManager);
+			await borrowable.transfer(address(0), reserveTokens, {from: reservesManager});
 		});
 		
 		it(`er = erLast`, async () => {
 			const erLast = er;
 			await borrowable.setExchangeRateLast(erLast);
 			await borrowable.exchangeRate();
-			expect(await borrowable.balanceOf(reserveManager) * 1).to.eq(0);
+			expect(await borrowable.balanceOf(reservesManager) * 1).to.eq(0);
 			expect(await borrowable.totalSupply() * 1).to.eq(totalSupply * 1);
 			expect(await borrowable.exchangeRate.call() * 1).to.eq(er * 1);
 			expect(await borrowable.exchangeRateLast() * 1).to.eq(erLast * 1);
@@ -415,7 +416,7 @@ contract('Borrowable', function (accounts) {
 			const erLast = er.mul(new BN(2));
 			await borrowable.setExchangeRateLast(erLast);
 			await borrowable.exchangeRate();
-			expect(await borrowable.balanceOf(reserveManager) * 1).to.eq(0);
+			expect(await borrowable.balanceOf(reservesManager) * 1).to.eq(0);
 			expect(await borrowable.totalSupply() * 1).to.eq(totalSupply * 1);
 			expect(await borrowable.exchangeRate.call() * 1).to.eq(er * 1);
 			expect(await borrowable.exchangeRateLast() * 1).to.eq(erLast * 1);
@@ -427,7 +428,7 @@ contract('Borrowable', function (accounts) {
 			const mintedReserves = bnMantissa(4.347826);
 			await borrowable.setExchangeRateLast(erLast);
 			await borrowable.exchangeRate();
-			expectAlmostEqualMantissa(await borrowable.balanceOf(reserveManager), mintedReserves);
+			expectAlmostEqualMantissa(await borrowable.balanceOf(reservesManager), mintedReserves);
 			expectAlmostEqualMantissa(await borrowable.totalSupply(), totalSupply.add(mintedReserves));
 			expect(await borrowable.exchangeRate.call() * 1).to.eq(erNew * 1);
 			expect(await borrowable.exchangeRateLast() * 1).to.eq(erNew * 1);
@@ -443,7 +444,7 @@ contract('Borrowable', function (accounts) {
 			await underlying.transfer(borrowable.address, erNewA, {from: user});
 			await borrowable.mint(user);
 			expect(await borrowable.balanceOf(user) * 1).to.eq(oneMantissa * 1);
-			expectAlmostEqualMantissa(await borrowable.balanceOf(reserveManager), mintedReservesA);
+			expectAlmostEqualMantissa(await borrowable.balanceOf(reservesManager), mintedReservesA);
 			expect(await borrowable.exchangeRate.call() * 1).to.eq(erNewA * 1);
 			
 			const totalSupplyB = await borrowable.totalSupply();
@@ -455,7 +456,7 @@ contract('Borrowable', function (accounts) {
 			await borrowable.transfer(borrowable.address, oneMantissa, {from: user});
 			await borrowable.redeem(user);
 			expect(await underlying.balanceOf(user) * 1).to.eq(erNewB * 1);
-			expectAlmostEqualMantissa(await borrowable.balanceOf(reserveManager), mintedReservesB);
+			expectAlmostEqualMantissa(await borrowable.balanceOf(reservesManager), mintedReservesB);
 			expect(await borrowable.exchangeRate.call() * 1).to.eq(erNewB * 1);
 		});
 	});

@@ -5,10 +5,14 @@ interface IFactory {
 		address collateral, address borrowable0, address borrowable1, uint lendingPoolId);
 	event NewPendingAdmin(address oldPendingAdmin, address newPendingAdmin);
 	event NewAdmin(address oldAdmin, address newAdmin);
+	event NewReservesPendingAdmin(address oldReservesPendingAdmin, address newReservesPendingAdmin);
+	event NewReservesAdmin(address oldReservesAdmin, address newReservesAdmin);
 	event NewReservesManager(address oldReservesManager, address newReservesManager);
 	
 	function admin() external view returns (address);
 	function pendingAdmin() external view returns (address);
+	function reservesAdmin() external view returns (address);
+	function reservesPendingAdmin() external view returns (address);
 	function reservesManager() external view returns (address);
 
 	function getLendingPool(address uniswapV2Pair) external view returns (
@@ -33,5 +37,7 @@ interface IFactory {
 
 	function _setPendingAdmin(address newPendingAdmin) external;
 	function _acceptAdmin() external;
+	function _setReservesPendingAdmin(address newPendingAdmin) external;
+	function _acceptReservesAdmin() external;
 	function _setReservesManager(address newReservesManager) external;
 }

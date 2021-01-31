@@ -7,8 +7,8 @@ import "./interfaces/IFactory.sol";
 contract BSetter is PoolToken, BStorage {
 
 	uint public constant RESERVE_FACTOR_MAX = 0.20e18; //20%
-	uint public constant KINK_UR_MIN = 0.6e18; //60%
-	uint public constant KINK_UR_MAX = 0.9e18; //90%
+	uint public constant KINK_UR_MIN = 0.50e18; //50%
+	uint public constant KINK_UR_MAX = 0.99e18; //99%
 	uint public constant ADJUST_SPEED_MIN = 0.05787037e12; //0.5% per day
 	uint public constant ADJUST_SPEED_MAX = 5.787037e12; //50% per day
 

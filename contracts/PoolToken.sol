@@ -62,8 +62,8 @@ contract PoolToken is IPoolToken, ImpermaxERC20 {
 
 		require(redeemAmount > 0, "Impermax: REDEEM_AMOUNT_ZERO");
 		require(redeemAmount <= totalBalance, "Impermax: INSUFFICIENT_CASH");
-		_safeTransfer(redeemer, redeemAmount);
 		_burn(address(this), redeemTokens);
+		_safeTransfer(redeemer, redeemAmount);
 		emit Redeem(msg.sender, redeemer, redeemAmount, redeemTokens);		
 	}
 

@@ -49,6 +49,7 @@ interface ICollateral {
 	function safetyMarginSqrt() external view returns (uint);
 	function liquidationIncentive() external view returns (uint);
 	
+	function getPrices() external returns (uint price0, uint price1);
 	function tokensUnlocked(address from, uint value) external returns (bool);
 	function accountLiquidityAmounts(address account, uint amount0, uint amount1) external returns (uint liquidity, uint shortfall);
 	function accountLiquidity(address account) external returns (uint liquidity, uint shortfall);

@@ -57,6 +57,7 @@ contract('Factory', function (accounts) {
 	let admin = accounts[1];		
 	let reservesManager = accounts[2];	
 	let user = accounts[3];
+	let reservesAdmin = accounts[4];		
 	
 	describe('constructor', () => {
 		it("correctly initialize Factory", async () => {
@@ -64,9 +65,11 @@ contract('Factory', function (accounts) {
 			const cDeployer = address(2);
 			const uniswapV2Factory = address(3);
 			const simpleUniswapOracle = address(4);
-			const factory = await Factory.new(admin, bDeployer, cDeployer, uniswapV2Factory, simpleUniswapOracle);
+			const factory = await Factory.new(admin, reservesAdmin, bDeployer, cDeployer, uniswapV2Factory, simpleUniswapOracle);
 			expect(await factory.admin()).to.eq(admin);
 			expect(await factory.pendingAdmin()).to.eq(address(0));
+			expect(await factory.reservesAdmin()).to.eq(reservesAdmin);
+			expect(await factory.reservesPendingAdmin()).to.eq(address(0));
 			expect(await factory.reservesManager()).to.eq(address(0));
 			expectEqual(await factory.allLendingPoolsLength(), 0);
 			expect(await factory.bDeployer()).to.eq(bDeployer);
@@ -254,10 +257,11 @@ contract('Factory', function (accounts) {
 	describe('admin', () => {
 		let factory;
 		beforeEach(async () => {
-			factory = await makeFactory({admin});
+			factory = await makeFactory({admin, reservesAdmin});
 		});
 		it("change admin", async () => {
 			await expectRevert(factory._setPendingAdmin(root, {from: root}), "Impermax: UNAUTHORIZED");
+			await expectRevert(factory._setPendingAdmin(root, {from: reservesAdmin}), "Impermax: UNAUTHORIZED");
 			await expectRevert(factory._acceptAdmin({from: root}), "Impermax: UNAUTHORIZED");
 			expectEvent(await factory._setPendingAdmin(root, {from: admin}), "NewPendingAdmin", {
 				'oldPendingAdmin': address(0),
@@ -277,14 +281,37 @@ contract('Factory', function (accounts) {
 			expect(await factory.admin()).to.eq(root);
 			expect(await factory.pendingAdmin()).to.eq(address(0));
 		});
+		it("change reserves admin", async () => {
+			await expectRevert(factory._setReservesPendingAdmin(root, {from: root}), "Impermax: UNAUTHORIZED");
+			await expectRevert(factory._setReservesPendingAdmin(root, {from: admin}), "Impermax: UNAUTHORIZED");
+			await expectRevert(factory._acceptReservesAdmin({from: root}), "Impermax: UNAUTHORIZED");
+			expectEvent(await factory._setReservesPendingAdmin(root, {from: reservesAdmin}), "NewReservesPendingAdmin", {
+				'oldReservesPendingAdmin': address(0),
+				'newReservesPendingAdmin': root,
+			});
+			expect(await factory.reservesAdmin()).to.eq(reservesAdmin);
+			expect(await factory.reservesPendingAdmin()).to.eq(root);
+			receipt = await factory._acceptReservesAdmin({from: root});
+			expectEvent(receipt, "NewReservesAdmin", {
+				'oldReservesAdmin': reservesAdmin,
+				'newReservesAdmin': root,
+			});
+			expectEvent(receipt, "NewReservesPendingAdmin", {
+				'oldReservesPendingAdmin': root,
+				'newReservesPendingAdmin': address(0),
+			});
+			expect(await factory.reservesAdmin()).to.eq(root);
+			expect(await factory.reservesPendingAdmin()).to.eq(address(0));
+		});
 		it("change reserves manager", async () => {
 			await expectRevert(factory._setReservesManager(reservesManager, {from: reservesManager}), "Impermax: UNAUTHORIZED");
-			expectEvent(await factory._setReservesManager(reservesManager, {from: admin}), "NewReservesManager", {
+			await expectRevert(factory._setReservesManager(reservesManager, {from: admin}), "Impermax: UNAUTHORIZED");
+			expectEvent(await factory._setReservesManager(reservesManager, {from: reservesAdmin}), "NewReservesManager", {
 				'oldReservesManager': address(0),
 				'newReservesManager': reservesManager,
 			});
 			expect(await factory.reservesManager()).to.eq(reservesManager);
-			await factory._setReservesManager(root, {from: admin});
+			await factory._setReservesManager(root, {from: reservesAdmin});
 			expect(await factory.reservesManager()).to.eq(root);
 		});
 	});

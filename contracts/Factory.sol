@@ -13,6 +13,8 @@ import "./interfaces/ISimpleUniswapOracle.sol";
 contract Factory is IFactory {
 	address public admin;
 	address public pendingAdmin;
+	address public reservesAdmin;
+	address public reservesPendingAdmin;
 	address public reservesManager;
 		
 	struct LendingPool {
@@ -37,15 +39,19 @@ contract Factory is IFactory {
 		address collateral, address borrowable0, address borrowable1, uint lendingPoolId);
 	event NewPendingAdmin(address oldPendingAdmin, address newPendingAdmin);
 	event NewAdmin(address oldAdmin, address newAdmin);
+	event NewReservesPendingAdmin(address oldReservesPendingAdmin, address newReservesPendingAdmin);
+	event NewReservesAdmin(address oldReservesAdmin, address newReservesAdmin);
 	event NewReservesManager(address oldReservesManager, address newReservesManager);
 	
-	constructor(address _admin, IBDeployer _bDeployer, ICDeployer _cDeployer, IUniswapV2Factory _uniswapV2Factory, ISimpleUniswapOracle _simpleUniswapOracle) public {
+	constructor(address _admin, address _reservesAdmin, IBDeployer _bDeployer, ICDeployer _cDeployer, IUniswapV2Factory _uniswapV2Factory, ISimpleUniswapOracle _simpleUniswapOracle) public {
 		admin = _admin;
+		reservesAdmin = _reservesAdmin;
 		bDeployer = _bDeployer;
 		cDeployer = _cDeployer;
 		uniswapV2Factory = _uniswapV2Factory;
 		simpleUniswapOracle = _simpleUniswapOracle;
 		emit NewAdmin(address(0), _admin);
+		emit NewReservesAdmin(address(0), _reservesAdmin);
 	}
 	
 	function _getTokens(address uniswapV2Pair) private view returns (address token0, address token1) {
@@ -135,9 +141,26 @@ contract Factory is IFactory {
 		emit NewAdmin(oldAdmin, admin);
 		emit NewPendingAdmin(oldPendingAdmin, address(0));
 	}
+	
+	function _setReservesPendingAdmin(address newReservesPendingAdmin) external {
+		require(msg.sender == reservesAdmin, "Impermax: UNAUTHORIZED");
+		address oldReservesPendingAdmin = reservesPendingAdmin;
+		reservesPendingAdmin = newReservesPendingAdmin;
+		emit NewReservesPendingAdmin(oldReservesPendingAdmin, newReservesPendingAdmin);
+	}
+
+	function _acceptReservesAdmin() external {
+		require(msg.sender == reservesPendingAdmin, "Impermax: UNAUTHORIZED");
+		address oldReservesAdmin = reservesAdmin;
+		address oldReservesPendingAdmin = reservesPendingAdmin;
+		reservesAdmin = reservesPendingAdmin;
+		reservesPendingAdmin = address(0);
+		emit NewReservesAdmin(oldReservesAdmin, reservesAdmin);
+		emit NewReservesPendingAdmin(oldReservesPendingAdmin, address(0));
+	}
 
 	function _setReservesManager(address newReservesManager) external {
-		require(msg.sender == admin, "Impermax: UNAUTHORIZED");
+		require(msg.sender == reservesAdmin, "Impermax: UNAUTHORIZED");
 		address oldReservesManager = reservesManager;
 		reservesManager = newReservesManager;
 		emit NewReservesManager(oldReservesManager, newReservesManager);

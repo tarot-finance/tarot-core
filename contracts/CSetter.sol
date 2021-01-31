@@ -7,9 +7,9 @@ import "./interfaces/ISimpleUniswapOracle.sol";
 
 contract CSetter is PoolToken, CStorage {
 
-	uint public constant SAFETY_MARGIN_SQRT_MIN = 1.22474487e18; //safetyMargin: 150%
+	uint public constant SAFETY_MARGIN_SQRT_MIN = 1.00e18; //safetyMargin: 100%
 	uint public constant SAFETY_MARGIN_SQRT_MAX = 1.58113884e18; //safetyMargin: 250%
-	uint public constant LIQUIDATION_INCENTIVE_MIN = 1.01e18; //101%
+	uint public constant LIQUIDATION_INCENTIVE_MIN = 1.00e18; //100%
 	uint public constant LIQUIDATION_INCENTIVE_MAX = 1.05e18; //105%
 
 	event NewSafetyMargin(uint newSafetyMarginSqrt);
