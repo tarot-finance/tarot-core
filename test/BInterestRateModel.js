@@ -28,7 +28,7 @@ contract('BInterestRateModel', function (accounts) {
 		let token;
 		let rateUpdateTimestamp = new BN(0);
 		let borrowRate = 0;
-		let kinkBorrowRate = 0.05 / SECONDS_IN_YEAR;
+		let kinkBorrowRate = 0.1 / SECONDS_IN_YEAR;
 		const adjustSpeed = 0.01 / SECONDS_IN_DAY;
 		const kinkUtilizationRate = 0.8;
 		const KINK_BORROW_RATE_MAX = 1 / SECONDS_IN_YEAR;

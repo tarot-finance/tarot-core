@@ -21,7 +21,7 @@ contract BStorage {
 		
 	// use one memory slot
 	uint48 public borrowRate;
-	uint48 public kinkBorrowRate = 1.5854896e9; //5% per year
+	uint48 public kinkBorrowRate = 3.1709792e9; //10% per year
 	uint32 public rateUpdateTimestamp = uint32(block.timestamp % 2**32);
 
 	uint public reserveFactor = 0.10e18; //10%
