@@ -4,7 +4,7 @@ contract BStorage {
 
 	address public collateral;
 
-	mapping (address => mapping (address => uint256)) public borrowAllowance; //provo a ridurlo?
+	mapping (address => mapping (address => uint256)) public borrowAllowance;
 	
 	struct BorrowSnapshot {
 		uint112 principal;		// amount in underlying when the borrow was last updated
