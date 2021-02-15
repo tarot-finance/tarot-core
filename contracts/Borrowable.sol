@@ -45,7 +45,7 @@ contract Borrowable is IBorrowable, PoolToken, BStorage, BSetter, BInterestRateM
 	
 	function exchangeRate() public accrue returns (uint)	{
 		uint _totalSupply = totalSupply;
-		uint _actualBalance =  totalBalance.add(totalBorrows);
+		uint _actualBalance = totalBalance.add(totalBorrows);
 		if (_totalSupply == 0 || _actualBalance == 0) return initialExchangeRate;
 		uint _exchangeRate = _actualBalance.mul(1e18).div(_totalSupply);
 		return _mintReserves(_exchangeRate, _totalSupply);
