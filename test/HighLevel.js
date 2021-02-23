@@ -58,23 +58,23 @@ contract('Highlevel', function (accounts) {
 	const expectedBorrowAmont0A = bnMantissa(20.02);
 	const expectedBorrowAmont1A = bnMantissa(500.5);
 	const expectedAccountLiquidityA = bnMantissa(69.5560);
-	const expectedBorrowRate0A = bnMantissa(0.05 * 5 / SECONDS_IN_YEAR);
-	const expectedBorrowRate1A = bnMantissa(0.035714286 / SECONDS_IN_YEAR);
+	const expectedBorrowRate0A = bnMantissa(0.1 * 5 / SECONDS_IN_YEAR);
+	const expectedBorrowRate1A = bnMantissa(0.07142857 / SECONDS_IN_YEAR);
 	const timeElapsed = 1000000; //11.57 days 
-	const expectedBorrowAmont0B = bnMantissa(20.178707);
-	const expectedBorrowAmont1B = bnMantissa(501.06681);
-	const expectedAccountLiquidityB = bnMantissa(68.1765);
-	const expectedBorrowRate0B = bnMantissa(0.1657407 * 5 / SECONDS_IN_YEAR);
-	const expectedBorrowRate1B = bnMantissa(0.02985666 / SECONDS_IN_YEAR);
-	const price0B = 7.745966;
-	const price1B = 0.1290994;	
-	const expectedAccountLiquidityC = bnMantissa(0.428347);
+	const expectedBorrowAmont0B = bnMantissa(20.337414);
+	const expectedBorrowAmont1B = bnMantissa(501.63362);
+	const expectedAccountLiquidityB = bnMantissa(66.79709);
+	const expectedBorrowRate0B = bnMantissa(0.3314814 * 5 / SECONDS_IN_YEAR);
+	const expectedBorrowRate1B = bnMantissa(0.05971332 / SECONDS_IN_YEAR);
+	const price0B = 7.645966;
+	const price1B = 0.13078792;
+	const expectedAccountLiquidityC = bnMantissa(1.14593614);
 	const price0C = 7.874008;
-	const price1C = 0.1270001;	
-	const expectedAccountShortfallD = bnMantissa(3.12837);
-	const liquidatedAmount = bnMantissa(165.2427);
-	const expectedLenderProfit0 = bnMantissa(0.160836);
-	const expectedProtocolProfit0 = bnMantissa(0.0178707);
+	const price1C = 0.1270001;
+	const expectedAccountShortfallD = bnMantissa(5.230578);
+	const liquidatedAmount = bnMantissa(166.54244);
+	const expectedLenderProfit0 = bnMantissa(0.303672);
+	const expectedProtocolProfit0 = bnMantissa(0.0337414);
 	
 	
 	before(async () => {
@@ -120,7 +120,7 @@ contract('Highlevel', function (accounts) {
 		expectAlmostEqualMantissa(await borrowable0.exchangeRate.call(), oneMantissa);
 		expectAlmostEqualMantissa(await borrowable0.BORROW_FEE(), oneMantissa.div(new BN(1000)));
 		expectAlmostEqualMantissa(await borrowable0.kinkUtilizationRate(), bnMantissa(0.7));
-		expectAlmostEqualMantissa(await borrowable0.kinkBorrowRate(), bnMantissa(0.05 / SECONDS_IN_YEAR));
+		expectAlmostEqualMantissa(await borrowable0.kinkBorrowRate(), bnMantissa(0.1 / SECONDS_IN_YEAR));
 		expectAlmostEqualMantissa(await borrowable0.reserveFactor(), bnMantissa(0.1));
 		expectEqual(await borrowable0.KINK_MULTIPLIER(), 5);
 		expectAlmostEqualMantissa(await borrowable0.adjustSpeed(), bnMantissa(0.05 / SECONDS_IN_DAY));

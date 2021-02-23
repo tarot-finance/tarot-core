@@ -1,4 +1,3 @@
-build
 build_
 migrations
 node_modules
@@ -7,5 +6,4 @@ node_modules
 .tsbuilt
 yarn-error.log
 .build
-package-lock.json
 .npmignore
