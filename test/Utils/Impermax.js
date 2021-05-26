@@ -86,7 +86,7 @@ async function makeFactory(opts = {}) {
 	const cDeployer = opts.cDeployer || await makeCDeployer(opts);
 	const uniswapV2Factory = opts.uniswapV2Factory || await makeUniswapV2Factory(opts);
 	const simpleUniswapOracle = opts.simpleUniswapOracle || await makeSimpleUniswapOracle(opts);
-	const factory = await Factory.new(admin, reservesAdmin, bDeployer.address, cDeployer.address, uniswapV2Factory.address, simpleUniswapOracle.address);
+	const factory = await Factory.new(admin, reservesAdmin, bDeployer.address, cDeployer.address, simpleUniswapOracle.address);
 	return Object.assign(factory, {obj: {admin, reservesAdmin, bDeployer, cDeployer, uniswapV2Factory, simpleUniswapOracle,
 		checkLendingPool: async (pair, {initialized, lendingPoolId, collateral, borrowable0, borrowable1}) => {
 			const lendingPool = await factory.getLendingPool(pair.address);

@@ -7,7 +7,6 @@ import "./interfaces/ICDeployer.sol";
 import "./interfaces/ICollateral.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IUniswapV2Pair.sol";
-import "./interfaces/IUniswapV2Factory.sol";
 import "./interfaces/ISimpleUniswapOracle.sol";
 
 contract Factory is IFactory {
@@ -32,7 +31,6 @@ contract Factory is IFactory {
 	
 	IBDeployer public bDeployer;
 	ICDeployer public cDeployer;
-	IUniswapV2Factory public uniswapV2Factory;
 	ISimpleUniswapOracle public simpleUniswapOracle;
 	
 	event LendingPoolInitialized(address indexed uniswapV2Pair, address indexed token0, address indexed token1,
@@ -43,12 +41,11 @@ contract Factory is IFactory {
 	event NewReservesAdmin(address oldReservesAdmin, address newReservesAdmin);
 	event NewReservesManager(address oldReservesManager, address newReservesManager);
 	
-	constructor(address _admin, address _reservesAdmin, IBDeployer _bDeployer, ICDeployer _cDeployer, IUniswapV2Factory _uniswapV2Factory, ISimpleUniswapOracle _simpleUniswapOracle) public {
+	constructor(address _admin, address _reservesAdmin, IBDeployer _bDeployer, ICDeployer _cDeployer, ISimpleUniswapOracle _simpleUniswapOracle) public {
 		admin = _admin;
 		reservesAdmin = _reservesAdmin;
 		bDeployer = _bDeployer;
 		cDeployer = _cDeployer;
-		uniswapV2Factory = _uniswapV2Factory;
 		simpleUniswapOracle = _simpleUniswapOracle;
 		emit NewAdmin(address(0), _admin);
 		emit NewReservesAdmin(address(0), _reservesAdmin);
@@ -57,7 +54,6 @@ contract Factory is IFactory {
 	function _getTokens(address uniswapV2Pair) private view returns (address token0, address token1) {
 		token0 = IUniswapV2Pair(uniswapV2Pair).token0();
 		token1 = IUniswapV2Pair(uniswapV2Pair).token1();
-		require(uniswapV2Factory.getPair(token0, token1) == uniswapV2Pair, "Impermax: NOT_UNIV2_PAIR");
 	}
 	
 	function _createLendingPool(address uniswapV2Pair) private {
@@ -105,21 +101,9 @@ contract Factory is IFactory {
 		(,,,,,bool oracleInitialized) = simpleUniswapOracle.getPair(uniswapV2Pair);
 		if (!oracleInitialized) simpleUniswapOracle.initialize(uniswapV2Pair);
 		
-		string memory token0Symbol = IERC20(token0).symbol();
-		string memory token1Symbol = IERC20(token1).symbol();
-		string memory lendingPoolId = uint2str(lPool.lendingPoolId);
-		
-		string memory name = string(abi.encodePacked("Impermax UniV2: ", token0Symbol, "-", token1Symbol, "-", lendingPoolId));
-		string memory symbol = string(abi.encodePacked("i", token0Symbol, "-", token1Symbol, "-", lendingPoolId));
-		ICollateral(lPool.collateral)._initialize(name, symbol, uniswapV2Pair, lPool.borrowable0, lPool.borrowable1);
-		
-		name = string(abi.encodePacked("Impermax UniV2: ", token0Symbol, "-", lendingPoolId));
-		symbol = string(abi.encodePacked("i", token0Symbol, "-", lendingPoolId));
-		IBorrowable(lPool.borrowable0)._initialize(name, symbol, token0, lPool.collateral);
-		
-		name = string(abi.encodePacked("Impermax UniV2: ", token1Symbol, "-", lendingPoolId));
-		symbol = string(abi.encodePacked("i", token1Symbol, "-", lendingPoolId));
-		IBorrowable(lPool.borrowable1)._initialize(name, symbol, token1, lPool.collateral);
+		ICollateral(lPool.collateral)._initialize("Impermax Collateral", "imxC", uniswapV2Pair, lPool.borrowable0, lPool.borrowable1);
+		IBorrowable(lPool.borrowable0)._initialize("Impermax Borrowable", "imxB", token0, lPool.collateral);
+		IBorrowable(lPool.borrowable1)._initialize("Impermax Borrowable", "imxB", token1, lPool.collateral);
 		
 		getLendingPool[uniswapV2Pair].initialized = true;
 		emit LendingPoolInitialized(uniswapV2Pair, token0, token1, lPool.collateral, lPool.borrowable0, lPool.borrowable1, lPool.lendingPoolId);
@@ -164,22 +148,5 @@ contract Factory is IFactory {
 		address oldReservesManager = reservesManager;
 		reservesManager = newReservesManager;
 		emit NewReservesManager(oldReservesManager, newReservesManager);
-	}
-	
-	function uint2str(uint _i) public pure returns (string memory _uintAsString) {
-		if (_i == 0) return "0";
-		uint j = _i;
-		uint len;
-		while (j != 0) {
-			len++;
-			j /= 10;
-		}
-		bytes memory bstr = new bytes(len);
-		uint k = len - 1;
-		while (_i != 0) {
-			bstr[k--] = byte(uint8(48 + _i % 10));
-			_i /= 10;
-		}
-		return string(bstr);
 	}
 }

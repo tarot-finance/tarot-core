@@ -65,7 +65,7 @@ contract('Factory', function (accounts) {
 			const cDeployer = address(2);
 			const uniswapV2Factory = address(3);
 			const simpleUniswapOracle = address(4);
-			const factory = await Factory.new(admin, reservesAdmin, bDeployer, cDeployer, uniswapV2Factory, simpleUniswapOracle);
+			const factory = await Factory.new(admin, reservesAdmin, bDeployer, cDeployer, simpleUniswapOracle);
 			expect(await factory.admin()).to.eq(admin);
 			expect(await factory.pendingAdmin()).to.eq(address(0));
 			expect(await factory.reservesAdmin()).to.eq(reservesAdmin);
@@ -74,13 +74,12 @@ contract('Factory', function (accounts) {
 			expectEqual(await factory.allLendingPoolsLength(), 0);
 			expect(await factory.bDeployer()).to.eq(bDeployer);
 			expect(await factory.cDeployer()).to.eq(cDeployer);
-			expect(await factory.uniswapV2Factory()).to.eq(uniswapV2Factory);
 			expect(await factory.simpleUniswapOracle()).to.eq(simpleUniswapOracle);
 		});		
 	});
 	
 	describe('create lending pool', () => {
-		let factory, uniswapV2Pair1, uniswapV2Pair2, uniswapV2Pair3, uniswapV2PairIndependent;
+		let factory, uniswapV2Pair1, uniswapV2Pair2, uniswapV2Pair3;
 		let ca, ba, fa;
 		let collateral1, borrowable01, borrowable11;
 		let collateral2, borrowable02, borrowable12;
@@ -96,12 +95,6 @@ contract('Factory', function (accounts) {
 			});
 			uniswapV2Pair2 = await makeUniswapV2Pair({withFactory: true, uniswapV2Factory: factory.obj.uniswapV2Factory});
 			uniswapV2Pair3 = await makeUniswapV2Pair({withFactory: true, uniswapV2Factory: factory.obj.uniswapV2Factory});
-			uniswapV2PairIndependent = await makeUniswapV2Pair({withFactory: true});
-		});
-		it('revert if pair not recognized by uniswapV2Factory', async () => {
-			await expectRevert(factory.createCollateral(uniswapV2PairIndependent.address), "Impermax: NOT_UNIV2_PAIR");
-			await expectRevert(factory.createBorrowable0(uniswapV2PairIndependent.address), "Impermax: NOT_UNIV2_PAIR");
-			await expectRevert(factory.createBorrowable1(uniswapV2PairIndependent.address), "Impermax: NOT_UNIV2_PAIR");
 		});
 		it('first contract deploy also create lendingPool', async () => {
 			await factory.obj.checkLendingPool(uniswapV2Pair1, {lendingPoolId: 0});
@@ -210,23 +203,17 @@ contract('Factory', function (accounts) {
 		});
 		it('collateral is initialized correctly', async () => {
 			const collateral = await Collateral.at(collateral1);
-			expect(await collateral.name()).to.eq("Impermax UniV2: ETH-UNI-1");
-			expect(await collateral.symbol()).to.eq("iETH-UNI-1");
 			expect(await collateral.underlying()).to.eq(uniswapV2Pair1.address);
 			expect(await collateral.borrowable0()).to.eq(borrowable01);
 			expect(await collateral.borrowable1()).to.eq(borrowable11);
 		});
 		it('borrowable0 is initialized correctly', async () => {
 			const borrowable0 = await Borrowable.at(borrowable01);
-			expect(await borrowable0.name()).to.eq("Impermax UniV2: ETH-1");
-			expect(await borrowable0.symbol()).to.eq("iETH-1");
 			expect(await borrowable0.underlying()).to.eq(uniswapV2Pair1.obj.token0.address);
 			expect(await borrowable0.collateral()).to.eq(collateral1);
 		});
 		it('borrowable1 is initialized correctly', async () => {
 			const borrowable1 = await Borrowable.at(borrowable11);
-			expect(await borrowable1.name()).to.eq("Impermax UniV2: UNI-1");
-			expect(await borrowable1.symbol()).to.eq("iUNI-1");
 			expect(await borrowable1.underlying()).to.eq(uniswapV2Pair1.obj.token1.address);
 			expect(await borrowable1.collateral()).to.eq(collateral1);
 		});
@@ -240,18 +227,6 @@ contract('Factory', function (accounts) {
 			await expectRevert(factory.initializeLendingPool(uniswapV2Pair2.address), "Impermax: ALREADY_INITIALIZED");
 			await expectRevert(factory.initializeLendingPool(uniswapV2Pair3.address), "Impermax: ALREADY_INITIALIZED");
 		});
-	});
-	
-	describe('uint2str', () => {
-		let factory;
-		before(async () => {
-			factory = await makeFactory({admin});
-		});		
-		it('uint2str works', async () => {
-			[0, 1, 14, 984, 19348, 2839848, 2389, 736832, 5646124, 445645].forEach(async (n) => {
-				expect(await factory.uint2str(n)).to.eq(n.toString());
-			});
-		}); 
 	});
 	
 	describe('admin', () => {

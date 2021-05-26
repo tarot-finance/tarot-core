@@ -27,7 +27,6 @@ interface IFactory {
 	
 	function bDeployer() external view returns (address);
 	function cDeployer() external view returns (address);
-	function uniswapV2Factory() external view returns (address);
 	function simpleUniswapOracle() external view returns (address);
 
 	function createCollateral(address uniswapV2Pair) external returns (address collateral);
