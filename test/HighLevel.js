@@ -1,7 +1,7 @@
 const {
 	makeFactory,
 	makeUniswapV2Pair,
-} = require('./Utils/Impermax');
+} = require('./Utils/Tarot');
 const {
 	expectEqual,
 	expectAlmostEqualMantissa,
@@ -163,7 +163,7 @@ contract('Highlevel', function (accounts) {
 	it('borrow token1 fails', async () => {
 		await expectRevert(
 			borrowable1.borrow(borrower, borrower, lendAmount1, '0x', {from: borrower}), 
-			"Impermax: INSUFFICIENT_LIQUIDITY"
+			"Tarot: INSUFFICIENT_LIQUIDITY"
 		);
 	});
 	
@@ -209,7 +209,7 @@ contract('Highlevel', function (accounts) {
 		await factory.obj.tarotPriceOracle.setPrice(uniswapV2Pair.address, uq112(price0B / price1B));
 		const {liquidity, shortfall} = await collateral.accountLiquidity.call(borrower);
 		expectAlmostEqualMantissa(liquidity, expectedAccountLiquidityC);
-		await expectRevert(borrowable0.liquidate(borrower, liquidator), 'Impermax: INSUFFICIENT_SHORTFALL');
+		await expectRevert(borrowable0.liquidate(borrower, liquidator), 'Tarot: INSUFFICIENT_SHORTFALL');
 	});
 	
 	it('liquidate token0', async () => {

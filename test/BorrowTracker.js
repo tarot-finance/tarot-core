@@ -1,7 +1,7 @@
 const {
 	Borrowable,
 	MockBorrowTracker,
-} = require('./Utils/Impermax');
+} = require('./Utils/Tarot');
 const {
 	expectAlmostEqualMantissa,
 	expectRevert,

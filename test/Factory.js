@@ -11,7 +11,7 @@ const {
 	makeBDeployer,
 	makeCDeployer,
 	makeFactory
-} = require('./Utils/Impermax');
+} = require('./Utils/Tarot');
 const {
 	expectEqual,
 	expectAlmostEqualMantissa,
@@ -124,9 +124,9 @@ contract('Factory', function (accounts) {
 			);
 		});
 		it('revert if already exists', async () => {
-			await expectRevert(factory.createCollateral(uniswapV2Pair1.address), "Impermax: ALREADY_EXISTS");
-			await expectRevert(factory.createBorrowable0(uniswapV2Pair2.address), "Impermax: ALREADY_EXISTS");
-			await expectRevert(factory.createBorrowable1(uniswapV2Pair3.address), "Impermax: ALREADY_EXISTS");			
+			await expectRevert(factory.createCollateral(uniswapV2Pair1.address), "Tarot: ALREADY_EXISTS");
+			await expectRevert(factory.createBorrowable0(uniswapV2Pair2.address), "Tarot: ALREADY_EXISTS");
+			await expectRevert(factory.createBorrowable1(uniswapV2Pair3.address), "Tarot: ALREADY_EXISTS");			
 		});
 		it('second contract deploy reuse lendingPool', async () => {
 			borrowable01 = await factory.createBorrowable0.call(uniswapV2Pair1.address);
@@ -140,9 +140,9 @@ contract('Factory', function (accounts) {
 			await factory.obj.checkLendingPool(uniswapV2Pair3, {lendingPoolId: 3, collateral: collateral3});
 		}); 
 		it('initialize revert if not all three contracts are deployed', async () => {
-			await expectRevert(factory.initializeLendingPool(uniswapV2Pair1.address), "Impermax: BORROWABLE1_NOT_CREATED");
-			await expectRevert(factory.initializeLendingPool(uniswapV2Pair2.address), "Impermax: COLLATERALIZABLE_NOT_CREATED");
-			await expectRevert(factory.initializeLendingPool(uniswapV2Pair3.address), "Impermax: BORROWABLE0_NOT_CREATED");
+			await expectRevert(factory.initializeLendingPool(uniswapV2Pair1.address), "Tarot: BORROWABLE1_NOT_CREATED");
+			await expectRevert(factory.initializeLendingPool(uniswapV2Pair2.address), "Tarot: COLLATERALIZABLE_NOT_CREATED");
+			await expectRevert(factory.initializeLendingPool(uniswapV2Pair3.address), "Tarot: BORROWABLE0_NOT_CREATED");
 		}); 
 		it('third contract deploy reuse lendingPool', async () => {
 			borrowable11 = await factory.createBorrowable1.call(uniswapV2Pair1.address);
@@ -159,19 +159,19 @@ contract('Factory', function (accounts) {
 			const lendingPool = await factory.getLendingPool(uniswapV2Pair1.address);
 			await expectRevert((await Collateral.at(lendingPool.collateral))._initialize(
 				"", "", address(0), address(0), address(0)
-			), "Impermax: UNAUTHORIZED");
+			), "Tarot: UNAUTHORIZED");
 			await expectRevert((await Borrowable.at(lendingPool.borrowable0))._initialize(
 				"", "", address(0), address(0)
-			), "Impermax: UNAUTHORIZED");
+			), "Tarot: UNAUTHORIZED");
 			await expectRevert((await Borrowable.at(lendingPool.borrowable1))._initialize(
 				"", "", address(0), address(0)
-			), "Impermax: UNAUTHORIZED");
+			), "Tarot: UNAUTHORIZED");
 		}); 
 		it('factory can only be set once', async () => {
 			const lendingPool = await factory.getLendingPool(uniswapV2Pair1.address);
-			await expectRevert((await Collateral.at(lendingPool.collateral))._setFactory(), "Impermax: FACTORY_ALREADY_SET");
-			await expectRevert((await Borrowable.at(lendingPool.borrowable0))._setFactory(), "Impermax: FACTORY_ALREADY_SET");
-			await expectRevert((await Borrowable.at(lendingPool.borrowable1))._setFactory(), "Impermax: FACTORY_ALREADY_SET");
+			await expectRevert((await Collateral.at(lendingPool.collateral))._setFactory(), "Tarot: FACTORY_ALREADY_SET");
+			await expectRevert((await Borrowable.at(lendingPool.borrowable0))._setFactory(), "Tarot: FACTORY_ALREADY_SET");
+			await expectRevert((await Borrowable.at(lendingPool.borrowable1))._setFactory(), "Tarot: FACTORY_ALREADY_SET");
 		}); 
 		it('initially is not initialized', async () => {
 			await factory.obj.checkLendingPool(uniswapV2Pair1, {initialized: false});
@@ -223,9 +223,9 @@ contract('Factory', function (accounts) {
 			expect( (await factory.obj.tarotPriceOracle.getPair(uniswapV2Pair3.address)).initialized ).to.eq(true);
 		});
 		it('revert if already initialized', async () => {
-			await expectRevert(factory.initializeLendingPool(uniswapV2Pair1.address), "Impermax: ALREADY_INITIALIZED");
-			await expectRevert(factory.initializeLendingPool(uniswapV2Pair2.address), "Impermax: ALREADY_INITIALIZED");
-			await expectRevert(factory.initializeLendingPool(uniswapV2Pair3.address), "Impermax: ALREADY_INITIALIZED");
+			await expectRevert(factory.initializeLendingPool(uniswapV2Pair1.address), "Tarot: ALREADY_INITIALIZED");
+			await expectRevert(factory.initializeLendingPool(uniswapV2Pair2.address), "Tarot: ALREADY_INITIALIZED");
+			await expectRevert(factory.initializeLendingPool(uniswapV2Pair3.address), "Tarot: ALREADY_INITIALIZED");
 		});
 	});
 	
@@ -235,9 +235,9 @@ contract('Factory', function (accounts) {
 			factory = await makeFactory({admin, reservesAdmin});
 		});
 		it("change admin", async () => {
-			await expectRevert(factory._setPendingAdmin(root, {from: root}), "Impermax: UNAUTHORIZED");
-			await expectRevert(factory._setPendingAdmin(root, {from: reservesAdmin}), "Impermax: UNAUTHORIZED");
-			await expectRevert(factory._acceptAdmin({from: root}), "Impermax: UNAUTHORIZED");
+			await expectRevert(factory._setPendingAdmin(root, {from: root}), "Tarot: UNAUTHORIZED");
+			await expectRevert(factory._setPendingAdmin(root, {from: reservesAdmin}), "Tarot: UNAUTHORIZED");
+			await expectRevert(factory._acceptAdmin({from: root}), "Tarot: UNAUTHORIZED");
 			expectEvent(await factory._setPendingAdmin(root, {from: admin}), "NewPendingAdmin", {
 				'oldPendingAdmin': address(0),
 				'newPendingAdmin': root,
@@ -257,9 +257,9 @@ contract('Factory', function (accounts) {
 			expect(await factory.pendingAdmin()).to.eq(address(0));
 		});
 		it("change reserves admin", async () => {
-			await expectRevert(factory._setReservesPendingAdmin(root, {from: root}), "Impermax: UNAUTHORIZED");
-			await expectRevert(factory._setReservesPendingAdmin(root, {from: admin}), "Impermax: UNAUTHORIZED");
-			await expectRevert(factory._acceptReservesAdmin({from: root}), "Impermax: UNAUTHORIZED");
+			await expectRevert(factory._setReservesPendingAdmin(root, {from: root}), "Tarot: UNAUTHORIZED");
+			await expectRevert(factory._setReservesPendingAdmin(root, {from: admin}), "Tarot: UNAUTHORIZED");
+			await expectRevert(factory._acceptReservesAdmin({from: root}), "Tarot: UNAUTHORIZED");
 			expectEvent(await factory._setReservesPendingAdmin(root, {from: reservesAdmin}), "NewReservesPendingAdmin", {
 				'oldReservesPendingAdmin': address(0),
 				'newReservesPendingAdmin': root,
@@ -279,8 +279,8 @@ contract('Factory', function (accounts) {
 			expect(await factory.reservesPendingAdmin()).to.eq(address(0));
 		});
 		it("change reserves manager", async () => {
-			await expectRevert(factory._setReservesManager(reservesManager, {from: reservesManager}), "Impermax: UNAUTHORIZED");
-			await expectRevert(factory._setReservesManager(reservesManager, {from: admin}), "Impermax: UNAUTHORIZED");
+			await expectRevert(factory._setReservesManager(reservesManager, {from: reservesManager}), "Tarot: UNAUTHORIZED");
+			await expectRevert(factory._setReservesManager(reservesManager, {from: admin}), "Tarot: UNAUTHORIZED");
 			expectEvent(await factory._setReservesManager(reservesManager, {from: reservesAdmin}), "NewReservesManager", {
 				'oldReservesManager': address(0),
 				'newReservesManager': reservesManager,

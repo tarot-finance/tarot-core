@@ -1,12 +1,12 @@
 const {
 	Borrowable,
 	Collateral,
-	ImpermaxCallee,
+	TarotCallee,
 	ReentrantCallee,
 	Recipient,
 	makeFactory,
 	makeUniswapV2Pair,
-} = require('./Utils/Impermax');
+} = require('./Utils/Tarot');
 const {
 	expectAlmostEqualMantissa,
 	expectRevert,
@@ -94,7 +94,7 @@ contract('Collateral', function (accounts) {
 			await factory.obj.tarotPriceOracle.setPrice(underlying.address, priceUQ112);
 			await underlying.setTotalSupply(totalSupply);
 			await underlying.setReserves(reserve0, reserve1);
-			await expectRevert(collateral.getPrices(), 'Impermax: PRICE_CALCULATION_ERROR');
+			await expectRevert(collateral.getPrices(), 'Tarot: PRICE_CALCULATION_ERROR');
 			
 			priceUQ112 = "26"; //0.5e-32
 			reserve0 = "200000000000000000000000000000000";
@@ -103,7 +103,7 @@ contract('Collateral', function (accounts) {
 			await factory.obj.tarotPriceOracle.setPrice(underlying.address, priceUQ112);
 			await underlying.setTotalSupply(totalSupply);
 			await underlying.setReserves(reserve0, reserve1);
-			await expectRevert(collateral.getPrices(), 'Impermax: PRICE_CALCULATION_ERROR');
+			await expectRevert(collateral.getPrices(), 'Tarot: PRICE_CALCULATION_ERROR');
 			
 			priceUQ112 = uq112(1); //1
 			reserve0 = "14142000000000000";
@@ -112,7 +112,7 @@ contract('Collateral', function (accounts) {
 			await factory.obj.tarotPriceOracle.setPrice(underlying.address, priceUQ112);
 			await underlying.setTotalSupply(totalSupply);
 			await underlying.setReserves(reserve0, reserve1);
-			await expectRevert(collateral.getPrices(), 'Impermax: PRICE_CALCULATION_ERROR');			
+			await expectRevert(collateral.getPrices(), 'Tarot: PRICE_CALCULATION_ERROR');			
 		});
 	});
 	
@@ -193,7 +193,7 @@ contract('Collateral', function (accounts) {
 			it(`transfer:fail`, async () => {
 				const transferAmount = slightlyIncrease(bnMantissa(expectedLiquidity / exchangeRate + 0.0000001));
 				expect(await collateral.tokensUnlocked.call(user, transferAmount)).to.eq(false);
-				await expectRevert(collateral.transfer(address(0), transferAmount, {from: user}), 'Impermax: INSUFFICIENT_LIQUIDITY');
+				await expectRevert(collateral.transfer(address(0), transferAmount, {from: user}), 'Tarot: INSUFFICIENT_LIQUIDITY');
 			});
 
 			it(`accountLiquidity`, async () => {
@@ -261,18 +261,18 @@ contract('Collateral', function (accounts) {
 		});
 		
 		it(`fail if msg.sender is not borrowable`, async () => {
-			await expectRevert(collateral.seize(address(0), address(0), '0'), "Impermax: UNAUTHORIZED");
+			await expectRevert(collateral.seize(address(0), address(0), '0'), "Tarot: UNAUTHORIZED");
 		});
 		
 		it(`fail if shortfall is insufficient`, async () => {
 			await collateral.setAccountLiquidityHarness(borrower, '0', '0');
 			await expectRevert(
 				borrowable0.seizeHarness(collateral.address, liquidator, borrower, '0'), 
-				"Impermax: INSUFFICIENT_SHORTFALL"
+				"Tarot: INSUFFICIENT_SHORTFALL"
 			);
 			await expectRevert(
 				borrowable1.seizeHarness(collateral.address, liquidator, borrower, '0'), 
-				"Impermax: INSUFFICIENT_SHORTFALL"
+				"Tarot: INSUFFICIENT_SHORTFALL"
 			);
 		});
 		
@@ -281,11 +281,11 @@ contract('Collateral', function (accounts) {
 			await collateral.setBalanceHarness(borrower, bnMantissa(collateralTokens));
 			await expectRevert(
 				borrowable0.seizeHarness(collateral.address, liquidator, borrower, slightlyIncrease(bnMantissa(maxRepay0))), 
-				"Impermax: LIQUIDATING_TOO_MUCH"
+				"Tarot: LIQUIDATING_TOO_MUCH"
 			);
 			await expectRevert(
 				borrowable1.seizeHarness(collateral.address, liquidator, borrower, slightlyIncrease(bnMantissa(maxRepay1))), 
-				"Impermax: LIQUIDATING_TOO_MUCH"
+				"Tarot: LIQUIDATING_TOO_MUCH"
 			);
 		});
 		
@@ -335,7 +335,7 @@ contract('Collateral', function (accounts) {
 			await collateral.setUnderlyingHarness(underlying.address);
 			await collateral.unlockTokensTransfer();
 			recipient = await Recipient.new();
-			callee = (await ImpermaxCallee.new(recipient.address, collateral.address)).address;
+			callee = (await TarotCallee.new(recipient.address, collateral.address)).address;
 		});
 		
 		beforeEach(async () => {
@@ -383,7 +383,7 @@ contract('Collateral', function (accounts) {
 		
 		it('redeem fails if redeemTokens is not enough', async () => {
 			await collateral.transfer(collateral.address, redeemTokens.sub(new BN(1)), {from: user});
-			await expectRevert(collateral.flashRedeem(user, redeemAmount, '0x'), 'Impermax: INSUFFICIENT_REDEEM_TOKENS');
+			await expectRevert(collateral.flashRedeem(user, redeemAmount, '0x'), 'Tarot: INSUFFICIENT_REDEEM_TOKENS');
 		});
 		
 		it('redeemTokens can be more than needed', async () => {
@@ -420,7 +420,7 @@ contract('Collateral', function (accounts) {
 		it('redeem fails if redeemAmount exceeds cash', async () => {
 			await expectRevert(
 				collateral.flashRedeem(user, collateralBalancePrior.add(new BN(1)), '0x'), 
-				'Impermax: INSUFFICIENT_CASH'
+				'Tarot: INSUFFICIENT_CASH'
 			);
 		});
 		
@@ -449,11 +449,11 @@ contract('Collateral', function (accounts) {
 		});
 		
 		it(`borrow reentrancy`, async () => {
-			await expectRevert(collateral.flashRedeem(receiver, '0', encode(['uint'], [1])), 'Impermax: REENTERED');
-			await expectRevert(collateral.flashRedeem(receiver, '0', encode(['uint'], [2])), 'Impermax: REENTERED');
-			await expectRevert(collateral.flashRedeem(receiver, '0', encode(['uint'], [3])), 'Impermax: REENTERED');
-			await expectRevert(collateral.flashRedeem(receiver, '0', encode(['uint'], [4])), 'Impermax: REENTERED');
-			await expectRevert(collateral.flashRedeem(receiver, '0', encode(['uint'], [5])), 'Impermax: REENTERED');
+			await expectRevert(collateral.flashRedeem(receiver, '0', encode(['uint'], [1])), 'Tarot: REENTERED');
+			await expectRevert(collateral.flashRedeem(receiver, '0', encode(['uint'], [2])), 'Tarot: REENTERED');
+			await expectRevert(collateral.flashRedeem(receiver, '0', encode(['uint'], [3])), 'Tarot: REENTERED');
+			await expectRevert(collateral.flashRedeem(receiver, '0', encode(['uint'], [4])), 'Tarot: REENTERED');
+			await expectRevert(collateral.flashRedeem(receiver, '0', encode(['uint'], [5])), 'Tarot: REENTERED');
 			await expectRevert(collateral.flashRedeem(receiver, '0', encode(['uint'], [0])), 'TEST');
 		});
 	});

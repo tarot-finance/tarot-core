@@ -1,9 +1,9 @@
 const {
-	ImpermaxERC20,
+	TarotERC20,
 	getDomainSeparator,
 	getApprovalDigest,
 	sendPermit,
-} = require('./Utils/Impermax');
+} = require('./Utils/Tarot');
 const {
 	expectEqual,
 	expectRevert,
@@ -18,7 +18,7 @@ const TOTAL_SUPPLY = new BN(1000);
 const TEST_AMOUNT = new BN(200);
 const MAX_UINT_256 = (new BN(2)).pow(new BN(256)).sub(new BN(1));
 
-contract('ImpermaxERC20', function (accounts) {
+contract('TarotERC20', function (accounts) {
 	let root = accounts[0];
 	let user = accounts[1];
 	let other = accounts[2];
@@ -43,7 +43,7 @@ contract('ImpermaxERC20', function (accounts) {
 	});
 	
 	beforeEach(async () => {
-		token = await ImpermaxERC20.new(NAME, SYMBOL);
+		token = await TarotERC20.new(NAME, SYMBOL);
 		await token.mint(user, TOTAL_SUPPLY);
 	});
 	
@@ -81,8 +81,8 @@ contract('ImpermaxERC20', function (accounts) {
 	});
 
 	it('transfer:fail', async () => {
-		await expectRevert(token.transfer(other, TOTAL_SUPPLY.add(new BN(1)), {from: user}), 'Impermax: TRANSFER_TOO_HIGH');
-		await expectRevert(token.transfer(user, "1", {from: other}), 'Impermax: TRANSFER_TOO_HIGH');
+		await expectRevert(token.transfer(other, TOTAL_SUPPLY.add(new BN(1)), {from: user}), 'Tarot: TRANSFER_TOO_HIGH');
+		await expectRevert(token.transfer(user, "1", {from: other}), 'Tarot: TRANSFER_TOO_HIGH');
 	});
 
 	it('transferFrom', async () => {
@@ -112,7 +112,7 @@ contract('ImpermaxERC20', function (accounts) {
 	});
 
 	it('transferFrom:fail', async () => {
-		await expectRevert(token.transferFrom(user, other, TEST_AMOUNT, {from: other}), 'Impermax: TRANSFER_NOT_ALLOWED');
+		await expectRevert(token.transferFrom(user, other, TEST_AMOUNT, {from: other}), 'Tarot: TRANSFER_NOT_ALLOWED');
 	});
 
 	it('permit', async () => {
@@ -197,7 +197,7 @@ contract('ImpermaxERC20', function (accounts) {
 				value: TEST_AMOUNT,
 				deadline: MAX_UINT_256,
 				private_key: otherForEip712PK,
-			}), 'Impermax: INVALID_SIGNATURE'
+			}), 'Tarot: INVALID_SIGNATURE'
 		);
 	});
 });

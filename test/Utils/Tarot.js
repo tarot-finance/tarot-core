@@ -24,7 +24,7 @@ const MockOracle = artifacts.require('MockOracle');
 const BDeployer = artifacts.require('BDeployer');
 const CDeployer = artifacts.require('CDeployer');
 const Factory = artifacts.require('Factory');
-const ImpermaxERC20 = artifacts.require('ImpermaxERC20Harness');
+const TarotERC20 = artifacts.require('TarotERC20Harness');
 const PoolToken = artifacts.require('PoolTokenHarness');
 const CollateralProduction = artifacts.require('Collateral');
 const BorrowableProduction = artifacts.require('Borrowable');
@@ -32,7 +32,7 @@ const Collateral = artifacts.require('CollateralHarness');
 const Borrowable = artifacts.require('BorrowableHarness');
 const BAllowance = artifacts.require('BAllowanceHarness');
 const BInterestRateModel = artifacts.require('BInterestRateModelHarness');
-const ImpermaxCallee = artifacts.require('ImpermaxCallee');
+const TarotCallee = artifacts.require('TarotCallee');
 const ReentrantCallee = artifacts.require('ReentrantCallee');
 const Recipient = artifacts.require('Recipient');
 const MockBorrowTracker = artifacts.require('MockBorrowTracker');
@@ -44,7 +44,7 @@ async function makeErc20Token(opts = {}) {
 	const decimals = etherUnsigned(dfn(opts.decimals, 18));
 	const symbol = opts.symbol || 'DAI';
 	const name = opts.name || `Erc20 ${symbol}`;
-	return await ImpermaxERC20.new(name, symbol);
+	return await TarotERC20.new(name, symbol);
 }
 
 async function makeUniswapV2Factory(opts = {}) {
@@ -69,7 +69,7 @@ async function makeTarotPriceOracle(opts = {}) {
 	return await MockOracle.new();
 }
 
-//IMPERMAX DEPLOYER
+//TAROT DEPLOYER
 
 async function makeBDeployer(opts = {}) {
 	return await BDeployer.new();
@@ -229,7 +229,7 @@ module.exports = {
 	BDeployer,
 	CDeployer,
 	Factory,
-	ImpermaxERC20,
+	TarotERC20,
 	PoolToken,
 	CollateralProduction,
 	BorrowableProduction,
@@ -237,7 +237,7 @@ module.exports = {
 	Borrowable,
 	BAllowance,
 	BInterestRateModel,
-	ImpermaxCallee,
+	TarotCallee,
 	ReentrantCallee,
 	Recipient,
 	MockBorrowTracker,

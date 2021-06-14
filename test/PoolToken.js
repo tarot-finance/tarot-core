@@ -1,6 +1,6 @@
 const {
 	makePoolToken,
-} = require('./Utils/Impermax');
+} = require('./Utils/Tarot');
 const {
 	expectEqual,
 	expectEvent,
