@@ -12,7 +12,6 @@ const {
 const {
 	address,
 } = require('./Utils/Ethereum');
-const { keccak256, toUtf8Bytes } = require('ethers/utils');
 
 
 const SECONDS_IN_DAY = 24 * 3600;

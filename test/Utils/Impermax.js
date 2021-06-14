@@ -14,7 +14,7 @@ const {
 	encode,
 	encodePacked,
 } = require('./Ethereum');
-const { hexlify, keccak256, toUtf8Bytes } = require('ethers/utils');
+const { hexlify, keccak256, toUtf8Bytes } = require('ethers').utils;
 const { ecsign } = require('ethereumjs-util');
 
 const MockERC20 = artifacts.require('MockERC20');

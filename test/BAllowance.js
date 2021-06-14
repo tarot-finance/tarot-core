@@ -13,7 +13,7 @@ const {
 const {
 	encodePacked,
 } = require('./Utils/Ethereum');
-const { keccak256, toUtf8Bytes } = require('ethers/utils');
+const { keccak256, toUtf8Bytes } = require('ethers').utils;
 
 const NAME = 'Ethereum';
 const SYMBOL = 'ETH';

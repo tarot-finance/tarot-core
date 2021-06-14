@@ -10,7 +10,7 @@ const {
 const {
 	address,
 } = require('./Utils/Ethereum');
-const { keccak256, toUtf8Bytes } = require('ethers/utils');
+const { keccak256, toUtf8Bytes } = require('ethers').utils;
 
 const oneMantissa = (new BN(10)).pow(new BN(18));
 const TOTAL_SUPPLY = bnMantissa(1000);

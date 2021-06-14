@@ -20,7 +20,6 @@ const {
 	address,
 	encode,
 } = require('./Utils/Ethereum');
-const { keccak256, toUtf8Bytes } = require('ethers/utils');
 
 const oneMantissa = (new BN(10)).pow(new BN(18));
 const SAFETY_MARGIN_MIN = bnMantissa(Math.sqrt(1.5));

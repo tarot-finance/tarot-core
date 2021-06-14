@@ -23,7 +23,7 @@ const {
 	address,
 	encodePacked,
 } = require('./Utils/Ethereum');
-const { keccak256 } = require('ethers/utils');
+const { keccak256 } = require('ethers').utils;
 
 function getCreate2Address(create2Inputs) {
 	const sanitizedInputs = '0x' + create2Inputs.map(i => i.slice(2)).join('');

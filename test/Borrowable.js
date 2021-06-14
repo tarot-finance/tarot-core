@@ -20,7 +20,7 @@ const {
 	address,
 	encode,
 } = require('./Utils/Ethereum');
-const { keccak256, toUtf8Bytes } = require('ethers/utils');
+const { keccak256, toUtf8Bytes } = require('ethers').utils;
 
 const oneMantissa = (new BN(10)).pow(new BN(18));
 const K_TRACKER = (new BN(2)).pow(new BN(128));
