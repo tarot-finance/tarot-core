@@ -7,7 +7,7 @@ const {
 	makeErc20Token,
 	makeUniswapV2Factory,
 	makeUniswapV2Pair,
-	makeSimpleUniswapOracle,
+	makeTarotPriceOracle,
 	makeBDeployer,
 	makeCDeployer,
 	makeFactory
@@ -64,8 +64,8 @@ contract('Factory', function (accounts) {
 			const bDeployer = address(1);
 			const cDeployer = address(2);
 			const uniswapV2Factory = address(3);
-			const simpleUniswapOracle = address(4);
-			const factory = await Factory.new(admin, reservesAdmin, bDeployer, cDeployer, simpleUniswapOracle);
+			const tarotPriceOracle = address(4);
+			const factory = await Factory.new(admin, reservesAdmin, bDeployer, cDeployer, tarotPriceOracle);
 			expect(await factory.admin()).to.eq(admin);
 			expect(await factory.pendingAdmin()).to.eq(address(0));
 			expect(await factory.reservesAdmin()).to.eq(reservesAdmin);
@@ -74,7 +74,7 @@ contract('Factory', function (accounts) {
 			expectEqual(await factory.allLendingPoolsLength(), 0);
 			expect(await factory.bDeployer()).to.eq(bDeployer);
 			expect(await factory.cDeployer()).to.eq(cDeployer);
-			expect(await factory.simpleUniswapOracle()).to.eq(simpleUniswapOracle);
+			expect(await factory.tarotPriceOracle()).to.eq(tarotPriceOracle);
 		});		
 	});
 	
@@ -178,11 +178,11 @@ contract('Factory', function (accounts) {
 			await factory.obj.checkLendingPool(uniswapV2Pair2, {initialized: false});
 			await factory.obj.checkLendingPool(uniswapV2Pair3, {initialized: false});
 		});
-		it('simpleUniswapOracle can be initialized or not', async () => {
-			expect( (await factory.obj.simpleUniswapOracle.getPair(uniswapV2Pair1.address)).initialized ).to.eq(false);
-			expect( (await factory.obj.simpleUniswapOracle.getPair(uniswapV2Pair2.address)).initialized ).to.eq(false);
-			await factory.obj.simpleUniswapOracle.initialize(uniswapV2Pair3.address);
-			expect( (await factory.obj.simpleUniswapOracle.getPair(uniswapV2Pair3.address)).initialized ).to.eq(true);
+		it('tarotPriceOracle can be initialized or not', async () => {
+			expect( (await factory.obj.tarotPriceOracle.getPair(uniswapV2Pair1.address)).initialized ).to.eq(false);
+			expect( (await factory.obj.tarotPriceOracle.getPair(uniswapV2Pair2.address)).initialized ).to.eq(false);
+			await factory.obj.tarotPriceOracle.initialize(uniswapV2Pair3.address);
+			expect( (await factory.obj.tarotPriceOracle.getPair(uniswapV2Pair3.address)).initialized ).to.eq(true);
 		});
 		it('initialize', async () => {
 			const receipt1 = await factory.initializeLendingPool(uniswapV2Pair1.address);
@@ -217,10 +217,10 @@ contract('Factory', function (accounts) {
 			expect(await borrowable1.underlying()).to.eq(uniswapV2Pair1.obj.token1.address);
 			expect(await borrowable1.collateral()).to.eq(collateral1);
 		});
-		it('simpleUniswapOracle is initialized correctly', async () => {
-			expect( (await factory.obj.simpleUniswapOracle.getPair(uniswapV2Pair1.address)).initialized ).to.eq(true);
-			expect( (await factory.obj.simpleUniswapOracle.getPair(uniswapV2Pair2.address)).initialized ).to.eq(true);
-			expect( (await factory.obj.simpleUniswapOracle.getPair(uniswapV2Pair3.address)).initialized ).to.eq(true);
+		it('tarotPriceOracle is initialized correctly', async () => {
+			expect( (await factory.obj.tarotPriceOracle.getPair(uniswapV2Pair1.address)).initialized ).to.eq(true);
+			expect( (await factory.obj.tarotPriceOracle.getPair(uniswapV2Pair2.address)).initialized ).to.eq(true);
+			expect( (await factory.obj.tarotPriceOracle.getPair(uniswapV2Pair3.address)).initialized ).to.eq(true);
 		});
 		it('revert if already initialized', async () => {
 			await expectRevert(factory.initializeLendingPool(uniswapV2Pair1.address), "Impermax: ALREADY_INITIALIZED");

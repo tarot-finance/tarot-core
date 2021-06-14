@@ -7,7 +7,7 @@ import "./interfaces/ICDeployer.sol";
 import "./interfaces/ICollateral.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IUniswapV2Pair.sol";
-import "./interfaces/ISimpleUniswapOracle.sol";
+import "./interfaces/ITarotPriceOracle.sol";
 
 contract Factory is IFactory {
 	address public admin;
@@ -31,7 +31,7 @@ contract Factory is IFactory {
 	
 	IBDeployer public bDeployer;
 	ICDeployer public cDeployer;
-	ISimpleUniswapOracle public simpleUniswapOracle;
+	ITarotPriceOracle public tarotPriceOracle;
 	
 	event LendingPoolInitialized(address indexed uniswapV2Pair, address indexed token0, address indexed token1,
 		address collateral, address borrowable0, address borrowable1, uint lendingPoolId);
@@ -41,12 +41,12 @@ contract Factory is IFactory {
 	event NewReservesAdmin(address oldReservesAdmin, address newReservesAdmin);
 	event NewReservesManager(address oldReservesManager, address newReservesManager);
 	
-	constructor(address _admin, address _reservesAdmin, IBDeployer _bDeployer, ICDeployer _cDeployer, ISimpleUniswapOracle _simpleUniswapOracle) public {
+	constructor(address _admin, address _reservesAdmin, IBDeployer _bDeployer, ICDeployer _cDeployer, ITarotPriceOracle _tarotPriceOracle) public {
 		admin = _admin;
 		reservesAdmin = _reservesAdmin;
 		bDeployer = _bDeployer;
 		cDeployer = _cDeployer;
-		simpleUniswapOracle = _simpleUniswapOracle;
+		tarotPriceOracle = _tarotPriceOracle;
 		emit NewAdmin(address(0), _admin);
 		emit NewReservesAdmin(address(0), _reservesAdmin);
 	}
@@ -98,8 +98,8 @@ contract Factory is IFactory {
 		require(lPool.borrowable0 != address(0), "Impermax: BORROWABLE0_NOT_CREATED");
 		require(lPool.borrowable1 != address(0), "Impermax: BORROWABLE1_NOT_CREATED");
 		
-		(,,,,,bool oracleInitialized) = simpleUniswapOracle.getPair(uniswapV2Pair);
-		if (!oracleInitialized) simpleUniswapOracle.initialize(uniswapV2Pair);
+		(,,,,,bool oracleInitialized) = tarotPriceOracle.getPair(uniswapV2Pair);
+		if (!oracleInitialized) tarotPriceOracle.initialize(uniswapV2Pair);
 		
 		ICollateral(lPool.collateral)._initialize("Impermax Collateral", "imxC", uniswapV2Pair, lPool.borrowable0, lPool.borrowable1);
 		IBorrowable(lPool.borrowable0)._initialize("Impermax Borrowable", "imxB", token0, lPool.collateral);

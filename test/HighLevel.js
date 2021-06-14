@@ -103,7 +103,7 @@ contract('Highlevel', function (accounts) {
 		await token0.mint(lender, lendAmount0);
 		await token1.mint(lender, lendAmount1);
 		await uniswapV2Pair.mint(borrower, collateralAmount);
-		await factory.obj.simpleUniswapOracle.setPrice(uniswapV2Pair.address, uq112(price0A / price1A));
+		await factory.obj.tarotPriceOracle.setPrice(uniswapV2Pair.address, uq112(price0A / price1A));
 		await uniswapV2Pair.setReserves(bnMantissa(price1A * 1000), bnMantissa(price0A * 1000));
 		await uniswapV2Pair.setTotalSupply(bnMantissa(2000));
 		//console.log(receiptCollateral.receipt.gasUsed + ' createCollateral');
@@ -206,14 +206,14 @@ contract('Highlevel', function (accounts) {
 	});
 	
 	it('liquidation fail', async () => {
-		await factory.obj.simpleUniswapOracle.setPrice(uniswapV2Pair.address, uq112(price0B / price1B));
+		await factory.obj.tarotPriceOracle.setPrice(uniswapV2Pair.address, uq112(price0B / price1B));
 		const {liquidity, shortfall} = await collateral.accountLiquidity.call(borrower);
 		expectAlmostEqualMantissa(liquidity, expectedAccountLiquidityC);
 		await expectRevert(borrowable0.liquidate(borrower, liquidator), 'Impermax: INSUFFICIENT_SHORTFALL');
 	});
 	
 	it('liquidate token0', async () => {
-		await factory.obj.simpleUniswapOracle.setPrice(uniswapV2Pair.address, uq112(price0C / price1C));
+		await factory.obj.tarotPriceOracle.setPrice(uniswapV2Pair.address, uq112(price0C / price1C));
 		const {liquidity, shortfall} = await collateral.accountLiquidity.call(borrower);
 		expectAlmostEqualMantissa(shortfall, expectedAccountShortfallD);
 		const currentBorrowAmount0 = (await borrowable0.borrowBalance(borrower));

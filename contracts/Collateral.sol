@@ -6,7 +6,7 @@ import "./CSetter.sol";
 import "./interfaces/IBorrowable.sol";
 import "./interfaces/ICollateral.sol";
 import "./interfaces/IFactory.sol";
-import "./interfaces/ISimpleUniswapOracle.sol";
+import "./interfaces/ITarotPriceOracle.sol";
 import "./interfaces/IImpermaxCallee.sol";
 import "./interfaces/IUniswapV2Pair.sol";
 import "./libraries/UQ112x112.sol";
@@ -21,7 +21,7 @@ contract Collateral is ICollateral, PoolToken, CStorage, CSetter {
 
 	// returns the prices of borrowable0's and borrowable1's underlyings with collateral's underlying as denom
 	function getPrices() public returns (uint price0, uint price1) {
-		(uint224 twapPrice112x112,) = ISimpleUniswapOracle(simpleUniswapOracle).getResult(underlying);
+		(uint224 twapPrice112x112,) = ITarotPriceOracle(tarotPriceOracle).getResult(underlying);
 		(uint112 reserve0, uint112 reserve1,) = IUniswapV2Pair(underlying).getReserves();
 		uint256 collateralTotalSupply = IUniswapV2Pair(underlying).totalSupply();
 		

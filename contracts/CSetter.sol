@@ -3,7 +3,7 @@ pragma solidity =0.5.16;
 import "./CStorage.sol";
 import "./PoolToken.sol";
 import "./interfaces/IFactory.sol";
-import "./interfaces/ISimpleUniswapOracle.sol";
+import "./interfaces/ITarotPriceOracle.sol";
 
 contract CSetter is PoolToken, CStorage {
 
@@ -28,7 +28,7 @@ contract CSetter is PoolToken, CStorage {
 		underlying = _underlying;
 		borrowable0 = _borrowable0;
 		borrowable1 = _borrowable1;
-		simpleUniswapOracle = IFactory(factory).simpleUniswapOracle();
+		tarotPriceOracle = IFactory(factory).tarotPriceOracle();
 	}
 
 	function _setSafetyMarginSqrt(uint newSafetyMarginSqrt) external nonReentrant {

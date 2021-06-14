@@ -27,7 +27,7 @@ interface IFactory {
 	
 	function bDeployer() external view returns (address);
 	function cDeployer() external view returns (address);
-	function simpleUniswapOracle() external view returns (address);
+	function tarotPriceOracle() external view returns (address);
 
 	function createCollateral(address uniswapV2Pair) external returns (address collateral);
 	function createBorrowable0(address uniswapV2Pair) external returns (address borrowable0);

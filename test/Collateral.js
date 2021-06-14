@@ -58,7 +58,7 @@ contract('Collateral', function (accounts) {
 		before(async () => {
 			collateral = await Collateral.new();
 			underlying = await makeUniswapV2Pair();
-			await collateral.setPriceOracle(factory.obj.simpleUniswapOracle.address);
+			await collateral.setPriceOracle(factory.obj.tarotPriceOracle.address);
 			await collateral.setUnderlyingHarness(underlying.address);
 		});
 		
@@ -76,7 +76,7 @@ contract('Collateral', function (accounts) {
 				const adjustedReserve1 = currentReserve1 * adjustement;
 				expectAlmostEqualMantissa(bnMantissa(adjustedReserve1 / adjustedReserve0), bnMantissa(priceOracle));
 				
-				await factory.obj.simpleUniswapOracle.setPrice(underlying.address, uq112(priceOracle));
+				await factory.obj.tarotPriceOracle.setPrice(underlying.address, uq112(priceOracle));
 				await underlying.setTotalSupply(bnMantissa(totalSupply));
 				await underlying.setReserves(bnMantissa(currentReserve0), bnMantissa(currentReserve1));
 				const {price0, price1} = await collateral.getPrices.call();
@@ -91,7 +91,7 @@ contract('Collateral', function (accounts) {
 			reserve0 = "1";
 			reserve1 = "200000000000000000000000000000000";
 			totalSupply = "14142000000000000";
-			await factory.obj.simpleUniswapOracle.setPrice(underlying.address, priceUQ112);
+			await factory.obj.tarotPriceOracle.setPrice(underlying.address, priceUQ112);
 			await underlying.setTotalSupply(totalSupply);
 			await underlying.setReserves(reserve0, reserve1);
 			await expectRevert(collateral.getPrices(), 'Impermax: PRICE_CALCULATION_ERROR');
@@ -100,7 +100,7 @@ contract('Collateral', function (accounts) {
 			reserve0 = "200000000000000000000000000000000";
 			reserve1 = "1";
 			totalSupply = "14142000000000000";
-			await factory.obj.simpleUniswapOracle.setPrice(underlying.address, priceUQ112);
+			await factory.obj.tarotPriceOracle.setPrice(underlying.address, priceUQ112);
 			await underlying.setTotalSupply(totalSupply);
 			await underlying.setReserves(reserve0, reserve1);
 			await expectRevert(collateral.getPrices(), 'Impermax: PRICE_CALCULATION_ERROR');
@@ -109,7 +109,7 @@ contract('Collateral', function (accounts) {
 			reserve0 = "14142000000000000";
 			reserve1 = "14142000000000000";
 			totalSupply = "1";
-			await factory.obj.simpleUniswapOracle.setPrice(underlying.address, priceUQ112);
+			await factory.obj.tarotPriceOracle.setPrice(underlying.address, priceUQ112);
 			await underlying.setTotalSupply(totalSupply);
 			await underlying.setReserves(reserve0, reserve1);
 			await expectRevert(collateral.getPrices(), 'Impermax: PRICE_CALCULATION_ERROR');			
